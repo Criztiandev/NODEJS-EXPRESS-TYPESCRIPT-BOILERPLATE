@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import authRoutes from "./routes/auth.routes";
 import accountRoutes from "./routes/account.routes";
 import { errorHandler, notFound } from "./utils/error.utils";
@@ -17,12 +17,17 @@ const PORT = process.env.PORT || 8000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(cookieParser());
+app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
     saveUninitialized: false,
     resave: false,
+
+    // 1 hour expiration
+    cookie: {
+      maxAge: 60000 * 60,
+    },
   })
 );
 
@@ -31,4 +36,6 @@ app.use("/api/account", accountRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
-app.listen(() => console.log(`Server is running on ${PORT}`));
+app.listen(PORT, () =>
+  console.log(`Server is running on http://localhost:${PORT}/`)
+);

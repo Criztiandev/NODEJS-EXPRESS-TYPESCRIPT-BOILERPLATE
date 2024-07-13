@@ -5,6 +5,7 @@ declare global {
       PORT: number;
       JWT_SECRET: string;
       SESSION_SECRET: string;
+      COOKIE_SECRET: string;
     }
   }
 }
