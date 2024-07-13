@@ -17,14 +17,14 @@ class AccountController {
 
   login = expressAsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { email, password } = req.body;
+      const { email } = req.body;
 
       const payload = { id: "#1223", email };
 
       // generate here the sessoion
       const currentSession = 0;
 
-      const accessToken = tokenUtils.generateToken<any>(payload, "1hr");
+      const accessToken = tokenUtils.generateToken<any>(payload, "5s");
       const refreshToken = tokenUtils.generateToken<any>(payload, "1yr");
 
       req.session.accessToken = accessToken;

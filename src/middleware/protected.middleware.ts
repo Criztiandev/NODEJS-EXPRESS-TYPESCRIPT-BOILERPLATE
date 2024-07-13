@@ -23,16 +23,34 @@ class ProtectedMiddleware {
 
         if (expired) {
           // generate refresh token
+          const { payload, expired } = tokenUtils.verifyToken(refreshToken);
+          if (expired) {
+            throw new Error("Refresh token expired");
+          }
+
+          // generate new access token
+          const newAccessToken = tokenUtils.generateToken<any>(payload, "10s");
+          req.session.accessToken = newAccessToken;
+
+          req.session.user = {
+            ...payload,
+            role: "user",
+            verified: true,
+          };
+
+          console.log("Access token is renewed");
+
+          next();
+        } else {
+          // Attaching the info
+          req.session.user = {
+            ...payload,
+            role: "user",
+            verified: true,
+          };
+
+          next();
         }
-
-        req.session.user = {
-          ...payload,
-          role: "user",
-          verified: true,
-        };
-
-        next();
-        // check if user exist, update the payload with credentials that is needed
       } catch (e: any) {
         res.status(400).json({
           error: e.message,
