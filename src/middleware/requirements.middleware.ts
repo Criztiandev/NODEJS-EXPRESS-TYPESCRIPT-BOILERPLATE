@@ -1,5 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 
+// interface Request extends ExpressRequest {
+//   user?: any;
+// }
+
 class RequirementsMiddleware {
   constructor() {}
 
