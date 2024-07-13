@@ -5,6 +5,7 @@ import { errorHandler, notFound } from "./utils/error.utils";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 import dotenv from "dotenv";
+import Routes from "./routes";
 
 dotenv.config();
 
@@ -31,8 +32,7 @@ app.use(
   })
 );
 
-app.use("/api/auth", authRoutes);
-app.use("/api/account", accountRoutes);
+Routes(app);
 
 app.use(notFound);
 app.use(errorHandler);
