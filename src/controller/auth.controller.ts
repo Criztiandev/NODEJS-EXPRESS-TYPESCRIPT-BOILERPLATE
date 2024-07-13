@@ -1,15 +1,19 @@
 import { NextFunction, Request, Response } from "express";
 import expressAsyncHandler from "express-async-handler";
 import tokenUtils from "../utils/token.utils";
+import EncryptionUtils from "../utils/encryption.utils";
 
 class AccountController {
   constructor() {}
 
   register = expressAsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { body } = req;
+      const { email, password } = req.body;
+
+      const hashedPassword = await EncryptionUtils.hashPassword(password);
 
       res.status(200).json({
+        payload: hashedPassword,
         message: "Registered Successfully",
       });
     }
@@ -17,7 +21,15 @@ class AccountController {
 
   login = expressAsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      const { email } = req.body;
+      const { email, password } = req.body;
+
+      const isPasswordCorrect = await EncryptionUtils.comparePassword(
+        password,
+        "$2b$10$4iV4B6HW95rZ6KllNaLFUOeBSn/fCd10kJldWwvfuxWqjf5OJyTKm"
+      );
+
+      if (!isPasswordCorrect)
+        throw new Error("Incorrect Password, Please try again later");
 
       const payload = { id: "#1223", email };
 

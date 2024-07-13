@@ -6,6 +6,8 @@ declare global {
       JWT_SECRET: string;
       SESSION_SECRET: string;
       COOKIE_SECRET: string;
+      ENCRYPTION_KEY_32: string;
+      ENCRYPTION_KEY_16: string;
     }
   }
 }
