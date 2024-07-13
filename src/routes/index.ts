@@ -4,9 +4,9 @@ import authRoutes from "./auth.routes";
 import accountRoutes from "./account.routes";
 
 const Routes = (app: Express) => {
-  app.use("/session", sessionRoutes);
-  app.use("/auth", authRoutes);
-  app.use("/auth", accountRoutes);
+  app.use("/api/session", sessionRoutes);
+  app.use("/api/auth", authRoutes);
+  app.use("/api/account", accountRoutes);
 };
 
 export default Routes;

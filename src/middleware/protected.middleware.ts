@@ -5,21 +5,41 @@ import tokenUtils from "../utils/token.utils";
 class ProtectedMiddleware {
   constructor() {}
 
-  protectedRoute = expressAsyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
-      const authHeader = req.headers.authorization;
+  protectedRoute = async (req: Request, res: Response, next: NextFunction) => {
+    // get the toke to the cookies
+    req.sessionStore.get(req.sessionID, (err, sessionData) => {
+      try {
+        if (err) {
+          throw new Error("Error retrieving session data: " + err.message);
+        }
+        if (!sessionData) {
+          throw new Error("No session data found for the given session ID");
+        }
 
-      if (!authHeader || !authHeader.startsWith("Bearer"))
-        throw new Error("No Token provided, Authorization denied");
+        const { accessToken, refreshToken } = sessionData;
 
-      const token = authHeader.split(" ")[1]; // getting the token
-      if (!token)
-        throw new Error(
-          "There is not token is attached, Please try again later"
-        );
+        // verify token
+        const { payload, expired } = tokenUtils.verifyToken(accessToken);
 
-      // verify token
-      const { payload, expired } = tokenUtils.verifyToken(token);
-    }
-  );
+        if (expired) {
+          // generate refresh token
+        }
+
+        req.session.user = {
+          ...payload,
+          role: "user",
+          verified: true,
+        };
+
+        next();
+        // check if user exist, update the payload with credentials that is needed
+      } catch (e: any) {
+        res.status(400).json({
+          error: e.message,
+        });
+      }
+    });
+  };
 }
+
+export default new ProtectedMiddleware();

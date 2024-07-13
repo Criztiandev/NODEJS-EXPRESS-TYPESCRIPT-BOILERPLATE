@@ -1,8 +1,11 @@
 import { Router } from "express";
 import accountController from "../controller/account.controller";
+import protectedMiddleware from "../middleware/protected.middleware";
 const router = Router();
 
-router.post("/profile", accountController.details);
+const { protectedRoute } = protectedMiddleware;
+
+router.get("/profile", [protectedRoute], accountController.details);
 router.post("/logout", accountController.logout);
 
 export default router;
