@@ -5,58 +5,48 @@ import tokenUtils from "../utils/token.utils";
 class ProtectedMiddleware {
   constructor() {}
 
-  protectedRoute = async (req: Request, res: Response, next: NextFunction) => {
-    // get the toke to the cookies
-    req.sessionStore.get(req.sessionID, (err, sessionData) => {
-      try {
+  extractSessionData = (req: Request): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      req.sessionStore.get(req.sessionID, (err, data) => {
         if (err) {
-          throw new Error("Error retrieving session data: " + err.message);
-        }
-        if (!sessionData) {
-          throw new Error("No session data found for the given session ID");
-        }
-
-        const { accessToken, refreshToken } = sessionData;
-
-        // verify token
-        const { payload, expired } = tokenUtils.verifyToken(accessToken);
-
-        if (expired) {
-          // generate refresh token
-          const { payload, expired } = tokenUtils.verifyToken(refreshToken);
-          if (expired) {
-            throw new Error("Refresh token expired");
-          }
-
-          // generate new access token
-          const newAccessToken = tokenUtils.generateToken<any>(payload, "10s");
-          req.session.accessToken = newAccessToken;
-
-          req.session.user = {
-            ...payload,
-            role: "user",
-            verified: true,
-          };
-
-          console.log("Access token is renewed");
-
-          next();
+          reject(new Error("Error retrieving session data: " + err.message));
+        } else if (!data) {
+          reject(new Error("No session data found for the given session ID"));
         } else {
-          // Attaching the info
-          req.session.user = {
-            ...payload,
-            role: "user",
-            verified: true,
-          };
-
-          next();
+          resolve(data);
         }
-      } catch (e: any) {
-        res.status(400).json({
-          error: e.message,
-        });
-      }
+      });
     });
+  };
+
+  protectedRoute = async (req: Request, res: Response, next: NextFunction) => {
+    const sessionData = await this.extractSessionData(req);
+
+    if (!sessionData) throw new Error("Invalid action, No session data found");
+
+    const { accessToken, refreshToken } = sessionData;
+
+    // verfiy access
+    const { payload, expired } = tokenUtils.verifyToken(accessToken);
+
+    if (expired) {
+      // verify refresh token
+      const { payload, expired } = tokenUtils.verifyToken(refreshToken);
+      if (expired) throw new Error("Refresh token expired");
+
+      // generate new access token
+      const newAccessToken = tokenUtils.generateToken<any>(payload, "10s");
+      req.session.accessToken = newAccessToken;
+
+      // attach the payload to the session
+      req.session.user = { ...payload, role: "user", verified: true };
+
+      next();
+    } else {
+      // attach the payload to the session
+      req.session.user = { ...payload, role: "user", verified: true };
+      next();
+    }
   };
 }
 
