@@ -5,21 +5,49 @@ import tokenUtils from "../utils/token.utils";
 class ProtectedMiddleware {
   constructor() {}
 
-  protectedRoute = expressAsyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
-      const authHeader = req.headers.authorization;
+  extractSessionData = (req: Request): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      req.sessionStore.get(req.sessionID, (err, data) => {
+        if (err) {
+          reject(new Error("Error retrieving session data: " + err.message));
+        } else if (!data) {
+          reject(new Error("No session data found for the given session ID"));
+        } else {
+          resolve(data);
+        }
+      });
+    });
+  };
 
-      if (!authHeader || !authHeader.startsWith("Bearer"))
-        throw new Error("No Token provided, Authorization denied");
+  protectedRoute = async (req: Request, res: Response, next: NextFunction) => {
+    const sessionData = await this.extractSessionData(req);
 
-      const token = authHeader.split(" ")[1]; // getting the token
-      if (!token)
-        throw new Error(
-          "There is not token is attached, Please try again later"
-        );
+    if (!sessionData) throw new Error("Invalid action, No session data found");
 
-      // verify token
-      const { payload, expired } = tokenUtils.verifyToken(token);
+    const { accessToken, refreshToken } = sessionData;
+
+    // verfiy access
+    const { payload, expired } = tokenUtils.verifyToken(accessToken);
+
+    if (expired) {
+      // verify refresh token
+      const { payload, expired } = tokenUtils.verifyToken(refreshToken);
+      if (expired) throw new Error("Refresh token expired");
+
+      // generate new access token
+      const newAccessToken = tokenUtils.generateToken<any>(payload, "10s");
+      req.session.accessToken = newAccessToken;
+
+      // attach the payload to the session
+      req.session.user = { ...payload, role: "user", verified: true };
+
+      next();
+    } else {
+      // attach the payload to the session
+      req.session.user = { ...payload, role: "user", verified: true };
+      next();
     }
-  );
+  };
 }
+
+export default new ProtectedMiddleware();

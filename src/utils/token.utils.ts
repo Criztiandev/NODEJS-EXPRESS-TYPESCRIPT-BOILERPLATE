@@ -4,7 +4,7 @@ class TokenUtils {
   constructor() {}
 
   generateToken<T extends object>(
-    payload: T[],
+    payload: T,
     expiresAt: string | number = "1d",
     secret: string = process.env.JWT_SECRET || ""
   ): string {
@@ -22,8 +22,9 @@ class TokenUtils {
     try {
       const decoded = jwt.verify(token, secret, {
         ignoreExpiration: false,
-      }) as { payload: any[] };
-      return { payload: decoded.payload, expired: false };
+      }) as { data: any[] };
+
+      return { payload: decoded.data, expired: false };
     } catch (e) {
       return { payload: null, expired: true };
     }

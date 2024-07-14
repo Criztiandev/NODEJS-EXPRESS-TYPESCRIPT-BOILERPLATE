@@ -4,7 +4,12 @@ class AccountController {
   constructor() {}
 
   details = expressAsyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {}
+    async (req: Request, res: Response, next: NextFunction) => {
+      res.status(200).json({
+        payload: req.session.user,
+        message: "Pass thru",
+      });
+    }
   );
 
   logout = expressAsyncHandler(
