@@ -2,6 +2,11 @@ import { NextFunction, Request, Response } from "express"; // Import Response
 import tokenUtils from "../utils/token.utils";
 import expressAsyncHandler from "express-async-handler";
 
+/**
+ * Extract the session from the request body
+ * @param req
+ * @returns
+ */
 const extractSessionData = (req: Request): Promise<any> => {
   return new Promise((resolve, reject) => {
     req.sessionStore.get(req.sessionID, (err, data) => {
@@ -16,6 +21,9 @@ const extractSessionData = (req: Request): Promise<any> => {
   });
 };
 
+/**
+ * Protected routes that check if the request has a token
+ */
 const protectedRoute = expressAsyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const sessionData = await extractSessionData(req);
