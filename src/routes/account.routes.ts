@@ -3,9 +3,7 @@ import accountController from "../controller/account.controller";
 import protectedMiddleware from "../middleware/protected.middleware";
 const router = Router();
 
-const { protectedRoute } = protectedMiddleware;
-
-router.get("/profile", [protectedRoute], accountController.details);
+router.get("/profile", accountController.details);
 router.post("/logout", accountController.logout);
 
 export default router;

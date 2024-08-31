@@ -1,32 +1,30 @@
-import { NextFunction, Request, Response } from "express";
-import expressAsyncHandler from "express-async-handler";
+import { NextFunction, Request, Response } from "express"; // Import Response
 import tokenUtils from "../utils/token.utils";
+import expressAsyncHandler from "express-async-handler";
 
-class ProtectedMiddleware {
-  constructor() {}
-
-  extractSessionData = (req: Request): Promise<any> => {
-    return new Promise((resolve, reject) => {
-      req.sessionStore.get(req.sessionID, (err, data) => {
-        if (err) {
-          reject(new Error("Error retrieving session data: " + err.message));
-        } else if (!data) {
-          reject(new Error("No session data found for the given session ID"));
-        } else {
-          resolve(data);
-        }
-      });
+const extractSessionData = (req: Request): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    req.sessionStore.get(req.sessionID, (err, data) => {
+      if (err) {
+        reject(new Error("Error retrieving session data: " + err.message));
+      } else if (!data) {
+        reject(new Error("No session data found for the given session ID"));
+      } else {
+        resolve(data);
+      }
     });
-  };
+  });
+};
 
-  protectedRoute = async (req: Request, res: Response, next: NextFunction) => {
-    const sessionData = await this.extractSessionData(req);
+const protectedRoute = expressAsyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const sessionData = await extractSessionData(req);
 
     if (!sessionData) throw new Error("Invalid action, No session data found");
 
     const { accessToken, refreshToken } = sessionData;
 
-    // verfiy access
+    // verify access
     const { payload, expired } = tokenUtils.verifyToken(accessToken);
 
     if (expired) {
@@ -47,7 +45,7 @@ class ProtectedMiddleware {
       req.session.user = { ...payload, role: "user", verified: true };
       next();
     }
-  };
-}
+  }
+);
 
-export default new ProtectedMiddleware();
+export default protectedRoute;
