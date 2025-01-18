@@ -1,24 +1,68 @@
-import { version } from "../../package.json";
-
 import swaggerAutogen from "swagger-autogen";
+import config from "./config";
 
-const doc = {
+const swaggerConfig = {
   info: {
-    version: version,
-    title: "MONGODB BOILERPLATE", // by default: 'REST API'
-    description: "This is a simple nodejs express boilerplate", // by default: ''
+    title: config.SWAGGER_TITLE,
+    version: config.SWAGGER_VERSION,
+    description: config.SWAGGER_DESCRIPTION,
+    contact: config.SWAGGER_CONTACT,
+    license: {
+      name: "MIT",
+      url: "https://opensource.org/licenses/MIT",
+    },
   },
-  host: " http://localhost:4000/api",
-  servers: [{ url: " http://localhost:4000/" }],
+  servers: [
+    {
+      url:
+        config.NODE_ENV === "development"
+          ? config.SWAGGER_DEVELOPMENT_SERVER
+          : config.SWAGGER_PRODUCTION_SERVER,
+      description:
+        config.NODE_ENV === "development"
+          ? config.SWAGGER_DEVELOPMENT_SERVER_DESCRIPTION
+          : config.SWAGGER_PRODUCTION_SERVER_DESCRIPTION,
+    },
+  ],
   tags: [
     {
-      name: "Normal Tags",
-      description: "Just a normal description",
+      name: "Auth",
+      description: "Authentication endpoints",
+    },
+    {
+      name: "Users",
+      description: "User management endpoints",
+    },
+  ],
+  components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+      },
+      sessionAuth: {
+        type: "apiKey",
+        in: "cookie",
+        name: "connect.sid",
+      },
+    },
+  },
+  security: [
+    {
+      bearerAuth: [],
+      sessionAuth: [],
     },
   ],
 };
 
-const outputFile = "./dist/swagger-out.json";
-const routes = ["./routes/*.ts"];
+const outputFile = "./src/docs/swagger.json";
+const endpointFiles = ["./src/routes/*.ts"];
 
-swaggerAutogen({ openapi: "3.0.0" })(outputFile, routes, doc);
+// Generate swagger documentation
+swaggerAutogen({
+  openapi: "3.0.0",
+  autoHeaders: true,
+  autoQuery: true,
+  autoBody: true,
+})(outputFile, endpointFiles, swaggerConfig);

@@ -1,0 +1,50 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "MongoDB Express API",
+    "version": "1.0.0",
+    "description": "RESTful API documentation for MongoDB Express Boilerplate",
+    "contact": "{\"name\":\"API Support\",\"email\":\"support@example.com\"}",
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Authentication endpoints"
+    },
+    {
+      "name": "Users",
+      "description": "User management endpoints"
+    }
+  ],
+  "paths": {},
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "sessionAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "connect.sid"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": [],
+      "sessionAuth": []
+    }
+  ]
+}

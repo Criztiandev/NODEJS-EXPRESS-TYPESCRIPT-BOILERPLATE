@@ -3,8 +3,6 @@ import expressAsyncHandler from "express-async-handler";
 import tokenUtils from "../utils/token.utils";
 
 class ProtectedMiddleware {
-  constructor() {}
-
   extractSessionData = (req: Request, res: Response): Promise<any> => {
     return new Promise((resolve, reject) => {
       req.sessionStore.get(req.sessionID, (err, data) => {
@@ -30,24 +28,19 @@ class ProtectedMiddleware {
 
       const { accessToken, refreshToken } = sessionData;
 
-      // verfiy access
       const { payload, expired } = tokenUtils.verifyToken(accessToken);
 
       if (expired) {
-        // verify refresh token
         const { payload, expired } = tokenUtils.verifyToken(refreshToken);
         if (expired) throw new Error("Refresh token expired");
 
-        // generate new access token
         const newAccessToken = tokenUtils.generateToken<any>(payload, "10s");
         req.session.accessToken = newAccessToken;
 
-        // attach the payload to the session
         req.session.user = { ...payload, role: "user", verified: true };
 
         next();
       } else {
-        // attach the payload to the session
         req.session.user = { ...payload, role: "user", verified: true };
         next();
       }
