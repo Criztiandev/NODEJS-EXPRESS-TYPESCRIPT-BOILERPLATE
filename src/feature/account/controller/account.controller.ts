@@ -1,10 +1,26 @@
 import { NextFunction, Request, Response } from "express";
 import accountService from "../service/account.service";
 import { AllowedRoles, AsyncHandler } from "../../../utils/decorator.utils";
+import { ProtectedController } from "../../../decorator/routes/protected-routes.decorator";
 
+@ProtectedController()
 class AccountController {
-  @AllowedRoles(["user", "admin"])
+  /**
+   * @swagger
+   * /account/profile:
+   *   get:
+   *     summary: Get the user's profile
+   *     description: Retrieve the user's profile information
+   *     responses:
+   *       200:
+   *         description: User profile retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/User'
+   */
   @AsyncHandler()
+  @AllowedRoles(["user", "admin"])
   async details(req: Request, res: Response, next: NextFunction) {
     const userId = req.session.user?._id;
     const userProfile = await accountService.getUserProfile(userId);
@@ -14,8 +30,24 @@ class AccountController {
     });
   }
 
-  @AllowedRoles(["admin"])
+  /**
+   * @swagger
+   * /account/users:
+   *   get:
+   *     summary: Get all users
+   *     description: Retrieve all users
+   *     responses:
+   *       200:
+   *         description: Users retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 $ref: '#/components/schemas/User'
+   */
   @AsyncHandler()
+  @AllowedRoles(["admin"])
   async getAllUsers(req: Request, res: Response, next: NextFunction) {
     const users = await accountService.getAllUsers();
     res.status(200).json({
@@ -24,8 +56,22 @@ class AccountController {
     });
   }
 
-  @AllowedRoles(["user", "admin"])
+  /**
+   * @swagger
+   * /account/profile:
+   *   put:
+   *     summary: Update the user's profile
+   *     description: Update the user's profile information
+   *     responses:
+   *       200:
+   *         description: Profile updated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/User'
+   */
   @AsyncHandler()
+  @AllowedRoles(["user", "admin"])
   async updateProfile(req: Request, res: Response, next: NextFunction) {
     const userId = req.session.user?._id;
     const updatedUser = await accountService.updateUser(userId, req.body);
@@ -35,8 +81,18 @@ class AccountController {
     });
   }
 
-  @AllowedRoles(["user", "admin"])
+  /**
+   * @swagger
+   * /account/profile:
+   *   delete:
+   *     summary: Delete the user's account
+   *     description: Delete the user's account
+   *     responses:
+   *       200:
+   *         description: Account deleted successfully
+   */
   @AsyncHandler()
+  @AllowedRoles(["user", "admin"])
   async deleteAccount(req: Request, res: Response, next: NextFunction) {
     const userId = req.session.user?._id;
     await accountService.deleteUser(userId);
@@ -54,8 +110,18 @@ class AccountController {
     });
   }
 
-  @AllowedRoles(["user", "admin"])
+  /**
+   * @swagger
+   * /account/logout:
+   *   delete:
+   *     summary: Logout the user
+   *     description: Logout the user
+   *     responses:
+   *       200:
+   *         description: Logged out successfully
+   */
   @AsyncHandler()
+  @AllowedRoles(["user", "admin"])
   async logout(req: Request, res: Response, next: NextFunction) {
     req.session.destroy((err) => {
       if (err) {

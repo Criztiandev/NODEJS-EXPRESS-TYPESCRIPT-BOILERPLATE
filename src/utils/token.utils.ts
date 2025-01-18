@@ -1,8 +1,6 @@
 import jwt from "jsonwebtoken";
 
 class TokenUtils {
-  constructor() {}
-
   generateToken<T extends object>(
     payload: T,
     expiresAt: string | number = "1d",
@@ -32,24 +30,3 @@ class TokenUtils {
 }
 
 export default new TokenUtils();
-
-// export default {
-//   generateSecret: async () => {},
-//   generateToken: (payload, expiresAt, secret = process.env.JWT_SECRET) => {
-//     if (!payload || !secret)
-//       throw new Error("Please provide all required parameter");
-//     return jwt.sign(payload, secret, {
-//       expiresIn: expiresAt || "1d",
-//     });
-//   },
-//   verifyToken: async (token, secret = process.env.JWT_SECRET) => {
-//     try {
-//       return {
-//         payload: jwt.verify(token, secret, { ignoreExpiration: false }),
-//         expired: false,
-//       };
-//     } catch (error) {
-//       return { payload: null, expired: true };
-//     }
-//   },
-// };

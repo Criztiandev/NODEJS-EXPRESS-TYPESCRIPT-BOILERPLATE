@@ -1,8 +1,8 @@
 import AuthRepository from "../repository/auth.repository";
 import EncryptionUtils from "../../../utils/encryption.utils";
 import tokenUtils from "../../../utils/token.utils";
-import { UserSchameValue } from "../../../interface/user.interface";
 import AccountService from "../../account/service/account.service";
+import { User } from "../../../types/models/user";
 
 class AuthService {
   private readonly authRepository: typeof AuthRepository;
@@ -13,7 +13,7 @@ class AuthService {
     this.accountService = AccountService;
   }
 
-  async register(userData: Partial<UserSchameValue>) {
+  async register(userData: Partial<User>) {
     // Check if user already exists
     const existingUser = await this.authRepository.findUserByEmail(
       userData.email!

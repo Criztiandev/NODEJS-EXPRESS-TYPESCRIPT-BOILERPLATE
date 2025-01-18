@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import expressAsyncHandler from "express-async-handler";
-import { AnyZodObject, ZodError, ZodEffects } from "zod";
+import { AnyZodObject, ZodEffects } from "zod";
 
 type ZodSchema = AnyZodObject | ZodEffects<AnyZodObject>;
 

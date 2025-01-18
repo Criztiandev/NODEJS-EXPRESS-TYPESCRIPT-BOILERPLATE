@@ -4,6 +4,16 @@ import authService from "../service/auth.service";
 import cookieUtils from "../../../utils/cookie.utils";
 
 class AuthController {
+  /**
+   * @swagger
+   * /auth/register:
+   *   post:
+   *     summary: Register a new user
+   *     description: Register a new user
+   *     responses:
+   *       201:
+   *         description: User registered successfully
+   */
   @AsyncHandler()
   async register(req: Request, res: Response, next: NextFunction) {
     const { body } = req;
@@ -17,6 +27,16 @@ class AuthController {
     });
   }
 
+  /**
+   * @swagger
+   * /auth/login:
+   *   post:
+   *     summary: Login a user
+   *     description: Login a user
+   *     responses:
+   *       200:
+   *         description: User logged in successfully
+   */
   @AsyncHandler()
   async login(req: Request, res: Response, next: NextFunction) {
     const { email, password } = req.body;
@@ -38,18 +58,48 @@ class AuthController {
     });
   }
 
+  /**
+   * @swagger
+   * /auth/forgot-password:
+   *   post:
+   *     summary: Forgot password
+   *     description: Forgot password
+   *     responses:
+   *       200:
+   *         description: Password changed successfully
+   */
   @AsyncHandler()
   async forgotPassword(req: Request, res: Response, next: NextFunction) {
     // TODO: Implement forgot password flow
     throw new Error("Not implemented");
   }
 
+  /**
+   * @swagger
+   * /auth/checkpoint/{id}:
+   *   post:
+   *     summary: Verify account
+   *     description: Verify account
+   *     responses:
+   *       200:
+   *         description: Account verified successfully
+   */
   @AsyncHandler()
   async verifyAccount(req: Request, res: Response, next: NextFunction) {
     // TODO: Implement account verification flow
     throw new Error("Not implemented");
   }
 
+  /**
+   * @swagger
+   * /auth/change-password:
+   *   post:
+   *     summary: Change password
+   *     description: Change password
+   *     responses:
+   *       200:
+   *         description: Password changed successfully
+   */
   @AsyncHandler()
   async changePassword(req: Request, res: Response, next: NextFunction) {
     const userId = req.session.user?._id;

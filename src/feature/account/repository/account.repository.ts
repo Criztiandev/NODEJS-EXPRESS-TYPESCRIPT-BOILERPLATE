@@ -1,11 +1,11 @@
 import { FilterQuery, Model } from "mongoose";
-import { UserSchameValue } from "../../../interface/user.interface";
 import userModel from "../../../model/user.model";
+import { User } from "../../../types/models/user";
 
 class AccountRepository {
-  private readonly userModel: Model<UserSchameValue>;
+  private readonly userModel: Model<User>;
 
-  constructor(userModel: Model<UserSchameValue>) {
+  constructor(userModel: Model<User>) {
     this.userModel = userModel;
   }
 
@@ -14,7 +14,7 @@ class AccountRepository {
   }
 
   async findByFilter(
-    filter: FilterQuery<UserSchameValue>,
+    filter: FilterQuery<User>,
     select: string | Record<string, number> = ""
   ) {
     return await this.userModel.find(filter).select(select).lean();
@@ -28,11 +28,11 @@ class AccountRepository {
     return await this.userModel.findOne({ email }).lean();
   }
 
-  async create(userData: Partial<UserSchameValue>) {
+  async create(userData: Partial<User>) {
     return await this.userModel.create(userData);
   }
 
-  async update(id: string, updateData: Partial<UserSchameValue>) {
+  async update(id: string, updateData: Partial<User>) {
     return await this.userModel
       .findByIdAndUpdate(id, updateData, {
         new: true,

@@ -1,11 +1,11 @@
 import { Model } from "mongoose";
-import { UserSchameValue } from "../../../interface/user.interface";
 import userModel from "../../../model/user.model";
+import { User } from "../../../types/models/user";
 
 class AuthRepository {
-  private readonly userModel: Model<UserSchameValue>;
+  private readonly userModel: Model<User>;
 
-  constructor(userModel: Model<UserSchameValue>) {
+  constructor(userModel: Model<User>) {
     this.userModel = userModel;
   }
 

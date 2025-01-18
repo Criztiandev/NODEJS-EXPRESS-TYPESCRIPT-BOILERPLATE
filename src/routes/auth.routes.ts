@@ -1,17 +1,12 @@
 import { Router } from "express";
-import authController from "../controller/auth.controller";
 import validationMiddlware from "../middleware/validation.middlware";
-import { registrationValidation } from "../service/validation/auth.validation";
+import authController from "../feature/auth/controller/auth.controller";
 const router = Router();
 
 const { validate } = validationMiddlware;
 
 router.post("/login", authController.login);
-router.post(
-  "/register",
-  [validate(registrationValidation)],
-  authController.register
-);
+router.post("/register", authController.register);
 router.post("/forgot-password", authController.forgotPassword);
 router.post("/checkpoint/:id", authController.verifyAccount);
 router.put("/checkpoint/change-password/:id", authController.changePassword);

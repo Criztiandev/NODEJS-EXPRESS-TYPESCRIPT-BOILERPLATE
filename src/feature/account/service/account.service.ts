@@ -1,5 +1,5 @@
+import { User } from "../../../types/models/user";
 import accountRepository from "../repository/account.repository";
-import { UserSchameValue } from "../../../interface/user.interface";
 import { FilterQuery } from "mongoose";
 
 class AccountService {
@@ -12,17 +12,17 @@ class AccountService {
   }
 
   async getUsersByFilter(
-    filter: FilterQuery<UserSchameValue>,
+    filter: FilterQuery<User>,
     select?: string | Record<string, number>
   ) {
     return await accountRepository.findByFilter(filter, select);
   }
 
-  async createUser(userData: Partial<UserSchameValue>) {
+  async createUser(userData: Partial<User>) {
     return await accountRepository.create(userData);
   }
 
-  async updateUser(id: string, updateData: Partial<UserSchameValue>) {
+  async updateUser(id: string, updateData: Partial<User>) {
     return await accountRepository.update(id, updateData);
   }
 
