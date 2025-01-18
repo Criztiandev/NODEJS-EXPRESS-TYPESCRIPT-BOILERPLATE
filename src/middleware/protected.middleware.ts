@@ -1,59 +1,58 @@
-import { NextFunction, Request, Response } from "express"; // Import Response
-import tokenUtils from "../utils/token.utils";
+import { NextFunction, Request, Response } from "express";
 import expressAsyncHandler from "express-async-handler";
+import tokenUtils from "../utils/token.utils";
 
-/**
- * Extract the session from the request body
- * @param req
- * @returns
- */
-const extractSessionData = (req: Request): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    req.sessionStore.get(req.sessionID, (err, data) => {
-      if (err) {
-        reject(new Error("Error retrieving session data: " + err.message));
-      } else if (!data) {
-        reject(new Error("No session data found for the given session ID"));
-      } else {
-        resolve(data);
-      }
+class ProtectedMiddleware {
+  constructor() {}
+
+  extractSessionData = (req: Request, res: Response): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      req.sessionStore.get(req.sessionID, (err, data) => {
+        if (err) {
+          res.status(400);
+          reject(new Error("Error retrieving session data: " + err.message));
+        } else if (!data) {
+          res.status(400);
+          reject(new Error("No session data found for the given session ID"));
+        } else {
+          resolve(data);
+        }
+      });
     });
-  });
-};
+  };
 
-/**
- * Protected routes that check if the request has a token
- */
-const protectedRoute = expressAsyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const sessionData = await extractSessionData(req);
+  protectedRoute = expressAsyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const sessionData = await this.extractSessionData(req, res);
 
-    if (!sessionData) throw new Error("Invalid action, No session data found");
+      if (!sessionData)
+        throw new Error("Invalid action, No session data found");
 
-    const { accessToken, refreshToken } = sessionData;
+      const { accessToken, refreshToken } = sessionData;
 
-    // verify access
-    const { payload, expired } = tokenUtils.verifyToken(accessToken);
+      // verfiy access
+      const { payload, expired } = tokenUtils.verifyToken(accessToken);
 
-    if (expired) {
-      // verify refresh token
-      const { payload, expired } = tokenUtils.verifyToken(refreshToken);
-      if (expired) throw new Error("Refresh token expired");
+      if (expired) {
+        // verify refresh token
+        const { payload, expired } = tokenUtils.verifyToken(refreshToken);
+        if (expired) throw new Error("Refresh token expired");
 
-      // generate new access token
-      const newAccessToken = tokenUtils.generateToken<any>(payload, "10s");
-      req.session.accessToken = newAccessToken;
+        // generate new access token
+        const newAccessToken = tokenUtils.generateToken<any>(payload, "10s");
+        req.session.accessToken = newAccessToken;
 
-      // attach the payload to the session
-      req.session.user = { ...payload, role: "user", verified: true };
+        // attach the payload to the session
+        req.session.user = { ...payload, role: "user", verified: true };
 
-      next();
-    } else {
-      // attach the payload to the session
-      req.session.user = { ...payload, role: "user", verified: true };
-      next();
+        next();
+      } else {
+        // attach the payload to the session
+        req.session.user = { ...payload, role: "user", verified: true };
+        next();
+      }
     }
-  }
-);
+  );
+}
 
-export default protectedRoute;
+export default new ProtectedMiddleware();
