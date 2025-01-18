@@ -1,8 +1,6 @@
 import { Request, Response } from "express";
 
 class CookieUtils {
-  constructor() {}
-
   setCookie(res: Response, name: string, value: string, options: any = {}) {
     const defaultOptions = {
       httpOnly: true,

@@ -1,88 +1,66 @@
 import { NextFunction, Request, Response } from "express";
-import expressAsyncHandler from "express-async-handler";
-import { UserSchameValue } from "../../../interface/user.interface";
-import userModel from "../../../model/user.model";
-import EncryptionUtils from "../../../utils/encryption.utils";
-import tokenUtils from "../../../utils/token.utils";
+import { AsyncHandler } from "../../../utils/decorator.utils";
+import authService from "../service/auth.service";
+import cookieUtils from "../../../utils/cookie.utils";
 
-class AccountController {
-  constructor() {}
+class AuthController {
+  @AsyncHandler()
+  async register(req: Request, res: Response, next: NextFunction) {
+    const { body } = req;
+    const { userId } = await authService.register(body);
 
-  register = expressAsyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
-      const { body } = req;
-      const { email, password } = body as UserSchameValue;
-      // check if user exist
-      const userExist = await userModel.findOne({ email }).lean().select("_id");
-      if (userExist) throw new Error("User already exist");
+    res.status(201).json({
+      payload: {
+        UID: userId,
+      },
+      message: "Registered Successfully",
+    });
+  }
 
-      const hashedPassword = await EncryptionUtils.hashPassword(password);
+  @AsyncHandler()
+  async login(req: Request, res: Response, next: NextFunction) {
+    const { email, password } = req.body;
 
-      //
-      const credentials = await userModel.create({
-        ...body,
-        password: hashedPassword,
-      });
+    const { user, tokens } = await authService.login(email, password);
 
-      if (!credentials)
-        throw new Error("Something went wrong, Please try again later");
+    // Set session
+    req.session.user = user;
 
-      res.status(200).json({
-        payload: {
-          UID: credentials?._id,
-        },
-        message: "Registered Successfully",
-      });
-    }
-  );
+    // Set auth cookie
+    cookieUtils.setAuthCookie(res, tokens.accessToken);
 
-  login = expressAsyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
-      const { email, password } = req.body;
+    res.status(200).json({
+      payload: {
+        UID: user._id,
+        role: user.role,
+      },
+      message: "Login successful",
+    });
+  }
 
-      // check if user exist
-      const userExist = await userModel
-        .findOne({ email })
-        .lean()
-        .select("_id password");
-      if (!userExist) throw new Error("User doesn't exist");
+  @AsyncHandler()
+  async forgotPassword(req: Request, res: Response, next: NextFunction) {
+    // TODO: Implement forgot password flow
+    throw new Error("Not implemented");
+  }
 
-      const isPasswordCorrect = await EncryptionUtils.comparePassword(
-        password,
-        userExist.password
-      );
+  @AsyncHandler()
+  async verifyAccount(req: Request, res: Response, next: NextFunction) {
+    // TODO: Implement account verification flow
+    throw new Error("Not implemented");
+  }
 
-      if (!isPasswordCorrect)
-        throw new Error("Incorrect Password, Please try again later");
+  @AsyncHandler()
+  async changePassword(req: Request, res: Response, next: NextFunction) {
+    const userId = req.session.user?._id;
+    const { newPassword } = req.body;
 
-      const payload = { UID: userExist._id };
+    await authService.resetPassword(userId, newPassword);
 
-      const accessToken = tokenUtils.generateToken<any>(payload, "5s");
-      const refreshToken = tokenUtils.generateToken<any>(payload, "1yr");
-
-      req.session.accessToken = accessToken;
-      req.session.refreshToken = refreshToken;
-
-      res.status(200).json({
-        payload: {
-          UID: userExist._id,
-        },
-        message: "Login successfully",
-      });
-    }
-  );
-
-  forgotPassword = expressAsyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {}
-  );
-
-  verifyAccount = expressAsyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {}
-  );
-
-  changePassword = expressAsyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {}
-  );
+    res.status(200).json({
+      message: "Password changed successfully",
+    });
+  }
 }
 
-export default new AccountController();
+export default new AuthController();
