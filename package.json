@@ -6,7 +6,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc --build",
     "start": "node ./dist/index.js",
-    "dev": "nodemon ./src/index.ts",
+    "dev": "nodemon --exec ts-node ./src/index.ts",
     "generate-swagger": "ts-node ./src/config/swagger.config.ts"
   },
   "keywords": [],
@@ -14,7 +14,6 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@types/mongoose": "^5.11.97",
     "@types/morgan": "^1.9.9",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.6",
@@ -41,7 +40,9 @@
     "@types/express": "^4.17.21",
     "@types/express-session": "^1.18.1",
     "@types/jsonwebtoken": "^9.0.6",
-    "nodemon": "^3.1.4",
+    "@types/mongoose": "^5.11.96",
+    "@types/node": "^22.10.7",
+    "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
   }
