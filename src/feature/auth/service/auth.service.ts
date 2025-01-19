@@ -19,24 +19,27 @@ class AuthService {
     this.accountService = AccountService;
   }
 
-  async register(userData: Partial<User>): Promise<RegisterDTO> {
-    // Check if user already exists
-    const existingUser = await this.authRepository.findUserByEmail(
-      userData.email!
-    );
+  async register(credentials: User): Promise<RegisterDTO> {
+    const { email, password, ...userData } = credentials;
+
+    if (Object.keys(credentials).length <= 0) {
+      throw new InputValidationError("Please provide all required fields");
+    }
+
+    const existingUser = await this.authRepository.findUserByEmail(email);
     if (existingUser) {
       throw new BadRequestError("User already exists");
     }
 
     // Hash password
-    const hashedPassword = await EncryptionUtils.hashPassword(
-      userData.password!
-    );
-    userData.password = hashedPassword;
-    userData.role = "user";
+    const hashedPassword = await EncryptionUtils.hashPassword(password);
 
     // Create user
-    const user = await this.accountService.createUser(userData);
+    const user = await this.accountService.createUser({
+      ...userData,
+      email,
+      password: hashedPassword,
+    });
     if (!user) {
       throw new BadRequestError("Failed to create user");
     }

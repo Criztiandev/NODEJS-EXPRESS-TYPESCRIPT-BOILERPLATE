@@ -6,9 +6,12 @@ import cookieUtils from "../../../utils/cookie.utils";
 class AuthController {
   @AsyncHandler()
   async register(req: Request, res: Response, next: NextFunction) {
-    // #swagger.tags = ['Auth']
-    // #swagger.summary = 'Register a new user'
-    // #swagger.description = 'Endpoint to register a new user'
+    /**
+     * @swagger
+     * tags: ['Auth']
+     * summary: Register a new user
+     * description: Endpoint to register a new user
+     */
 
     /* #swagger.requestBody = {
             required: true,
@@ -101,8 +104,7 @@ class AuthController {
     } 
     */
 
-    const { body } = req;
-    const { userId } = await authService.register(body);
+    const { userId } = await authService.register(req.body);
 
     res.status(201).json({
       payload: {
@@ -114,100 +116,12 @@ class AuthController {
 
   @AsyncHandler()
   async login(req: Request, res: Response, next: NextFunction) {
-    // #swagger.tags = ['Auth']
-    // #swagger.summary = 'Authenticate user and return session tokens'
-    // #swagger.description = 'Endpoint to authenticate users using email and password, returns user role and session tokens'
-
-    /* #swagger.requestBody = {
-            required: true,
-            content: {
-                'application/json': {
-                    schema: {
-                        type: 'object',
-                        required: ['email', 'password'],
-                        properties: {
-                            email: {
-                                type: 'string',
-                                format: 'email',
-                                description: 'Valid email address'
-                            },
-                            password: {
-                                type: 'string',
-                                format: 'password',
-                                description: 'User password (min 8 characters)'
-                            }
-                        }
-                    },
-                    example: {
-                        email: 'user@example.com',
-                        password: 'coolestPassword'
-                    }
-                }
-            }
-    } */
-
-    /* #swagger.responses[200] = { 
-        description: 'User logged in successfully',
-        content: {
-            'application/json': {
-                schema: {
-                    type: 'object',
-                    properties: {
-                        payload: {
-                            type: 'object',
-                            properties: {
-                                UID: { type: 'string', description: 'User ID' },
-                                role: { type: 'string', description: 'User role' }
-                            }
-                        },
-                        message: { type: 'string' }
-                    }
-                },
-                example: {
-                    payload: {
-                        UID: '507f1f77bcf86cd799439011',
-                        role: 'user'
-                    },
-                    message: 'Login successful'
-                }
-            }
-        }
-    } */
-
-    /* #swagger.responses[400] = {
-        description: 'Invalid request',
-        content: {
-            'application/json': {
-                example: {
-                    error: 'Invalid email format'
-                }
-            }
-        }
-    } */
-
-    /* #swagger.responses[401] = {
-        description: 'Authentication failed',
-        content: {
-            'application/json': {
-                example: {
-                    error: 'Invalid credentials'
-                }
-            }
-        }
-    } 
-    */
-
-    /* #swagger.responses[500] = {
-        description: 'Internal server error',
-        content: {
-            'application/json': {
-                example: {
-                    error: 'Internal server error'
-                }
-            }
-        }
-    } 
-    */
+    /**
+     * @swagger
+     * tags: ['Auth']
+     * summary: Authenticate user and return session tokens
+     * description: Endpoint to authenticate users using email and password, returns user role and session tokens
+     */
 
     const { email, password } = req.body;
     const { user, tokens } = await authService.login(email, password);
