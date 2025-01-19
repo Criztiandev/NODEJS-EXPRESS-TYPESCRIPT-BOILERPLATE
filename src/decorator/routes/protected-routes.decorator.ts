@@ -1,16 +1,17 @@
 import { Request, Response } from "express";
 import tokenUtils from "../../utils/token.utils";
+import { SessionData as ExpressSessionData } from 'express-session';
 
-interface SessionData {
+interface CustomSessionData {
   accessToken: string;
   refreshToken: string;
 }
 
-function extractSessionData(req: Request, res: Response): Promise<SessionData> {
+function extractSessionData(req: Request, res: Response): Promise<CustomSessionData> {
   return new Promise((resolve, reject) => {
     req.sessionStore.get(
       req.sessionID,
-      (err: any, session?: SessionData | null) => {
+      (err: any, session?: ExpressSessionData | null) => {
         if (err) {
           res.status(400);
           reject(new Error("Error retrieving session data: " + err.message));
@@ -18,7 +19,7 @@ function extractSessionData(req: Request, res: Response): Promise<SessionData> {
           res.status(400);
           reject(new Error("No session data found for the given session ID"));
         } else {
-          resolve(session);
+          resolve(session as unknown as CustomSessionData);
         }
       }
     );

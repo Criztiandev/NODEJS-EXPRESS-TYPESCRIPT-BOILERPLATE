@@ -38,7 +38,10 @@ class AuthService {
     return { userId: user._id };
   }
 
-  async login(email: string, password: string) {
+  async login(email: string, password: string): Promise<{
+    user: Pick<User, "_id" | "email" | "role"> & { fullName: string };
+    tokens: { accessToken: string; refreshToken: string };
+  }> {
     // Find user
     const user = await this.authRepository.findUserByEmail(email);
     if (!user) {
@@ -60,7 +63,8 @@ class AuthService {
 
     return {
       user: {
-        _id: user._id,
+        _id: user.firstName,
+        fullName: `${user.firstName} ${user.lastName}`,
         email: user.email,
         role: user.role,
       },

@@ -1,6 +1,6 @@
 import swaggerUI from "swagger-ui-express";
 import { Express } from "express";
-import swaggerJSONpayload from "../dist/swagger-out.json";
+import swaggerJSONpayload from "../docs/swagger.json";
 
 const swaggerDocs = (app: Express) => {
   app.use("/docs", swaggerUI.serve, swaggerUI.setup(swaggerJSONpayload));

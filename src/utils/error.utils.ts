@@ -102,12 +102,11 @@ export class NetworkError extends Error {
   }
 }
 
-// Example usage:
-try {
-  throw new ValidationError("Invalid email format");
-} catch (error) {
-  if (error instanceof Error) {
-    console.error(`${error.name}: ${error.message}`);
+export class ServerError extends Error {
+  status: number;
+  constructor(message: string) {
+    super(message);
+    this.name = "ServerError";
+    this.status = 500;
   }
-  // Handle the error based on error.status
 }

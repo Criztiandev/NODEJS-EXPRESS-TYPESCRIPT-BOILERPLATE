@@ -12,6 +12,13 @@ const config = cleanEnv(process.env, {
   }),
   PORT: num({ default: PORT }),
 
+  // ===== Database Config =====
+  MONGO_URI: str({ default: process.env.MONGO_URI }),
+
+  // ===== Session Config =====
+  SESSION_SECRET: str({ default: process.env.SESSION_SECRET  }),
+  COOKIE_SECRET: str({ default: process.env.COOKIE_SECRET }),
+
   // ===== Swagger Config =====
   SWAGGER_TITLE: str({ default: "MongoDB Express API" }),
   SWAGGER_VERSION: str({ default: "1.0.0" }),

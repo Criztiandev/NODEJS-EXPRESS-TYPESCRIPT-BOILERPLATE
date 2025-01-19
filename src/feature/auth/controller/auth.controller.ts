@@ -70,7 +70,6 @@ class AuthController {
    */
   @AsyncHandler()
   async forgotPassword(req: Request, res: Response, next: NextFunction) {
-    // TODO: Implement forgot password flow
     throw new Error("Not implemented");
   }
 
@@ -86,7 +85,6 @@ class AuthController {
    */
   @AsyncHandler()
   async verifyAccount(req: Request, res: Response, next: NextFunction) {
-    // TODO: Implement account verification flow
     throw new Error("Not implemented");
   }
 
@@ -102,7 +100,7 @@ class AuthController {
    */
   @AsyncHandler()
   async changePassword(req: Request, res: Response, next: NextFunction) {
-    const userId = req.session.user?._id;
+    const userId = "123123123"
     const { newPassword } = req.body;
 
     await authService.resetPassword(userId, newPassword);
