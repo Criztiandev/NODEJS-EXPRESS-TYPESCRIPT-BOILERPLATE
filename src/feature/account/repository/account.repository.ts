@@ -10,32 +10,41 @@ class AccountRepository {
   }
 
   async findAll() {
-    return await this.userModel.find().lean();
+    return await this.userModel.find().lean().select("-password -refreshToken");
   }
 
   async findByFilter(
     filter: FilterQuery<User>,
-    select: string | Record<string, number> = ""
+    select: string | Record<string, number> = "-password -refreshToken"
   ) {
     return await this.userModel.find(filter).select(select).lean();
   }
 
-  async findById(id: string) {
-    return await this.userModel.findById(id).lean();
+  async findById(
+    id: string,
+    select: string | Record<string, number> = "-password -refreshToken"
+  ) {
+    return await this.userModel.findById(id).select(select).lean();
   }
 
-  async findByEmail(email: string) {
-    return await this.userModel.findOne({ email }).lean();
+  async findByEmail(email: string, select: string = "-password -refreshToken") {
+    return await this.userModel.findOne({ email }).select(select).lean();
   }
 
   async create(userData: Partial<User>) {
     return await this.userModel.create(userData);
   }
 
-  async update(id: ObjectId | string, updateData: Partial<User>) {
-    return await this.userModel.findByIdAndUpdate(id, updateData, {
-      new: true,
-    });
+  async update(
+    id: ObjectId | string,
+    updateData: Partial<User>,
+    select: string = "-password -refreshToken"
+  ) {
+    return await this.userModel
+      .findByIdAndUpdate(id, updateData, {
+        new: true,
+      })
+      .select(select);
   }
 
   async delete(id: string) {

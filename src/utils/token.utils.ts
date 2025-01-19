@@ -16,7 +16,7 @@ class TokenUtils {
   verifyToken(
     token: string,
     secret: string = process.env.JWT_SECRET || ""
-  ): { payload: any[] | null; expired: boolean } {
+  ): { payload: any; expired: boolean } {
     try {
       const decoded = jwt.verify(token, secret, {
         ignoreExpiration: false,
