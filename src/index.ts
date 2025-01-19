@@ -1,5 +1,9 @@
 import express from "express";
-import { errorHandler, notFound, ServerError } from "./utils/error.utils";
+import {
+  errorHandler,
+  notFound,
+  InternalServerError,
+} from "./utils/error.utils";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 import Routes from "./routes";
@@ -10,12 +14,12 @@ import { morganSetup } from "./config/morgan.config";
 import swaggerDocs from "./utils/swagger.utils";
 import config from "./config/config";
 
-if (!config.SESSION_SECRET){
-  throw new ServerError("SESSION SECRET IS NOT DEFINED")
+if (!config.SESSION_SECRET) {
+  throw new InternalServerError("SESSION SECRET IS NOT DEFINED");
 }
 
-if (!config.COOKIE_SECRET){
-  throw new ServerError("COOKIE SECRET IS NOT DEFINED")
+if (!config.COOKIE_SECRET) {
+  throw new InternalServerError("COOKIE SECRET IS NOT DEFINED");
 }
 
 connectDB();

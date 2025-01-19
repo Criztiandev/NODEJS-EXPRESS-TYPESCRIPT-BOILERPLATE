@@ -21,6 +21,24 @@ export const errorHandler = (
   });
 };
 
+export class BadRequestError extends Error {
+  status: number;
+  constructor(message: string) {
+    super(message);
+    this.name = "BadRequestError";
+    this.status = 400;
+  }
+}
+
+export class InputValidationError extends Error {
+  status: number;
+  constructor(message: string) {
+    super(message);
+    this.name = "InputValidationError";
+    this.status = 400;
+  }
+}
+
 export class ValidationError extends Error {
   status: number;
   constructor(message: string) {
@@ -30,30 +48,22 @@ export class ValidationError extends Error {
   }
 }
 
-export class InputError extends Error {
+// validation for if the crendetials are not found
+export class CredentialsNotFoundError extends Error {
   status: number;
   constructor(message: string) {
     super(message);
-    this.name = "InputError";
-    this.status = 400;
-  }
-}
-
-export class AuthenticationError extends Error {
-  status: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "AuthenticationError";
+    this.name = "CredentialsNotFoundError";
     this.status = 401;
   }
 }
 
-export class AuthorizationError extends Error {
+export class UnauthorizedError extends Error {
   status: number;
   constructor(message: string) {
     super(message);
-    this.name = "AuthorizationError";
-    this.status = 403;
+    this.name = "UnauthorizedError";
+    this.status = 401;
   }
 }
 
@@ -66,12 +76,21 @@ export class NotFoundError extends Error {
   }
 }
 
-export class ConflictError extends Error {
+export class InternalServerError extends Error {
   status: number;
   constructor(message: string) {
     super(message);
-    this.name = "ConflictError";
-    this.status = 409;
+    this.name = "InternalServerError";
+    this.status = 500;
+  }
+}
+
+export class ForbiddenError extends Error {
+  status: number;
+  constructor(message: string) {
+    super(message);
+    this.name = "ForbiddenError";
+    this.status = 403;
   }
 }
 
@@ -84,29 +103,11 @@ export class RateLimitError extends Error {
   }
 }
 
-export class DatabaseError extends Error {
+export class ConflictError extends Error {
   status: number;
   constructor(message: string) {
     super(message);
-    this.name = "DatabaseError";
-    this.status = 500;
-  }
-}
-
-export class NetworkError extends Error {
-  status: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "NetworkError";
-    this.status = 503;
-  }
-}
-
-export class ServerError extends Error {
-  status: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "ServerError";
-    this.status = 500;
+    this.name = "ConflictError";
+    this.status = 409;
   }
 }

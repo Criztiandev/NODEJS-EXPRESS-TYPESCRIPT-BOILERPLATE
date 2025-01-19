@@ -3,6 +3,12 @@ import EncryptionUtils from "../../../utils/encryption.utils";
 import tokenUtils from "../../../utils/token.utils";
 import AccountService from "../../account/service/account.service";
 import { User } from "../../../types/models/user";
+import {
+  BadRequestError,
+  InputValidationError,
+} from "../../../utils/error.utils";
+import { LoginDTO } from "../interface/auth/login.interface";
+import { RegisterDTO } from "../interface/auth/register.interface";
 
 class AuthService {
   private readonly authRepository: typeof AuthRepository;
@@ -13,13 +19,13 @@ class AuthService {
     this.accountService = AccountService;
   }
 
-  async register(userData: Partial<User>) {
+  async register(userData: Partial<User>): Promise<RegisterDTO> {
     // Check if user already exists
     const existingUser = await this.authRepository.findUserByEmail(
       userData.email!
     );
     if (existingUser) {
-      throw new Error("User already exists");
+      throw new BadRequestError("User already exists");
     }
 
     // Hash password
@@ -27,25 +33,22 @@ class AuthService {
       userData.password!
     );
     userData.password = hashedPassword;
-    userData.role = "user"; // Default role
+    userData.role = "user";
 
     // Create user
     const user = await this.accountService.createUser(userData);
     if (!user) {
-      throw new Error("Failed to create user");
+      throw new BadRequestError("Failed to create user");
     }
 
     return { userId: user._id };
   }
 
-  async login(email: string, password: string): Promise<{
-    user: Pick<User, "_id" | "email" | "role"> & { fullName: string };
-    tokens: { accessToken: string; refreshToken: string };
-  }> {
+  async login(email: string, password: string): Promise<LoginDTO> {
     // Find user
     const user = await this.authRepository.findUserByEmail(email);
     if (!user) {
-      throw new Error("User not found");
+      throw new BadRequestError("User not found");
     }
 
     // Verify password
@@ -54,7 +57,7 @@ class AuthService {
       user.password
     );
     if (!isPasswordValid) {
-      throw new Error("Invalid password");
+      throw new InputValidationError("Invalid password");
     }
 
     // Generate tokens
@@ -82,7 +85,7 @@ class AuthService {
       hashedPassword
     );
     if (!updated) {
-      throw new Error("Failed to reset password");
+      throw new BadRequestError("Failed to reset password");
     }
     return true;
   }
@@ -92,7 +95,7 @@ class AuthService {
       const decoded = tokenUtils.verifyToken(token);
       return decoded;
     } catch (error) {
-      throw new Error("Invalid token");
+      throw new BadRequestError("Invalid token");
     }
   }
 }

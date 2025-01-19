@@ -24,16 +24,6 @@ const swaggerConfig = {
           : config.SWAGGER_PRODUCTION_SERVER_DESCRIPTION,
     },
   ],
-  tags: [
-    {
-      name: "Auth",
-      description: "Authentication endpoints",
-    },
-    {
-      name: "Users",
-      description: "User management endpoints",
-    },
-  ],
   components: {
     securitySchemes: {
       bearerAuth: {
@@ -57,7 +47,7 @@ const swaggerConfig = {
 };
 
 const outputFile = "./src/docs/swagger.json";
-const endpointFiles = ["./src/routes/*.ts"];
+const endpointFiles = ["./src/routes/index.ts"];
 
 // Generate swagger documentation
 swaggerAutogen({

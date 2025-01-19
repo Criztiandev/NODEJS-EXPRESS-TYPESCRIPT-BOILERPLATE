@@ -1,9 +1,6 @@
 import { Router } from "express";
-import validationMiddlware from "../middleware/validation.middlware";
 import authController from "../feature/auth/controller/auth.controller";
 const router = Router();
-
-const { validate } = validationMiddlware;
 
 router.post("/login", authController.login);
 router.post("/register", authController.register);
