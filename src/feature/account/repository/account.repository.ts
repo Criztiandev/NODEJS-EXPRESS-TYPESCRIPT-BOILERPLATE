@@ -113,7 +113,7 @@ class AccountRepository {
     email: string,
     select: string = AccountRepository.DEFAULT_SELECT
   ) {
-    const user = await this.userModel.findOne({ email }).select(select).lean();
+    const user = await this.userModel.findOne({ email }).select(select);
     if (!user) {
       throw new NotFoundError(`User with email ${email} not found`);
     }

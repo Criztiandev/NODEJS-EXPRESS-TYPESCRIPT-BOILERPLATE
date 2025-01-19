@@ -1,5 +1,5 @@
 import { Router } from "express";
-import otpController from "../feature/auth/controller/auth/otp.controller";
+import otpController from "../../feature/auth/controller/otp.controller";
 const router = Router();
 
 router.post("/generate", otpController.generateOTP);

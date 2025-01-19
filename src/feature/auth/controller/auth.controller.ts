@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
-import { AsyncHandler } from "../../../../utils/decorator.utils";
-import authService from "../../service/auth.service";
+import { AsyncHandler } from "../../../utils/decorator.utils";
+import authService from "../service/auth.service";
 class AuthController {
   @AsyncHandler()
   async register(req: Request, res: Response, next: NextFunction) {
