@@ -9,6 +9,7 @@ import {
 } from "../../../utils/error.utils";
 import { LoginDTO } from "../interface/auth/login.interface";
 import { RegisterDTO } from "../interface/auth/register.interface";
+import { generateOTP } from "../../../utils/generate.utilts";
 
 class AuthService {
   private readonly authRepository: typeof AuthRepository;
@@ -103,6 +104,30 @@ class AuthService {
       throw new BadRequestError("Failed to reset password");
     }
     return true;
+  }
+
+  async verifyAccount(checkpoint: string, otp: string) {
+    const user = await this.accountService.getUserByEmail(checkpoint);
+
+    if (!user) {
+      throw new BadRequestError("User not found");
+    }
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.accountService.getUserByEmail(email);
+
+    if (!user) {
+      throw new BadRequestError("User not found");
+    }
+
+    const token = tokenUtils.generateToken({ userId: user._id }, "1h");
+    const otp = generateOTP();
+
+    return {
+      token,
+      otp,
+    };
   }
 
   async validateToken(token: string) {
