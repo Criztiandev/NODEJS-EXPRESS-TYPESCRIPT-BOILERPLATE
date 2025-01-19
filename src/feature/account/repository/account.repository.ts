@@ -47,8 +47,14 @@ class AccountRepository {
       .select(select);
   }
 
-  async delete(id: string) {
-    return await this.userModel.findByIdAndDelete(id).lean();
+  async delete(id: ObjectId | string) {
+    return await this.userModel
+      .findByIdAndUpdate(id, {
+        refreshToken: "",
+        isDeleted: true,
+        deletedAt: new Date(),
+      })
+      .lean();
   }
 
   async updateUser(userId: ObjectId, update: Partial<User>) {

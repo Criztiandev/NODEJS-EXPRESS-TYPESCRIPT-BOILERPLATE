@@ -31,8 +31,11 @@ class AccountController {
   @AsyncHandler()
   @AllowedRoles(["user", "admin"])
   async updateProfile(req: Request, res: Response, next: NextFunction) {
+    // Add a zod validation
+
     const userId = req.session.user._id;
     const updatedUser = await accountService.updateUser(userId, req.body);
+
     res.status(200).json({
       payload: updatedUser,
       message: "Profile updated successfully",
@@ -47,12 +50,11 @@ class AccountController {
 
     req.session.destroy((err) => {
       if (err) {
-        res.status(500).json({
-          message: "Error deleting account",
-        });
-        return;
+        throw new BadRequestError("Failed to delete account");
       }
+
       res.clearCookie("connect.sid");
+
       res.status(200).json({
         message: "Account deleted successfully",
       });
