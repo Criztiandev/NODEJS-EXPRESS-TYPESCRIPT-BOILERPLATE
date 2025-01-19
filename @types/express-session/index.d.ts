@@ -3,8 +3,7 @@ import "express-session";
 declare module "express-session" {
   interface Session {
     user: any;
-    accessToken?: string;
-    refreshToken?: string;
+    accessToken: string;
   }
 }
 

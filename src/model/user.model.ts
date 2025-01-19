@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema<User>({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, required: false, default: "user" },
+  refreshToken: { type: String, required: false },
 });
 
 export default mongoose.model("user", userSchema);

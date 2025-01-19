@@ -1,8 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { AsyncHandler } from "../../../utils/decorator.utils";
 import authService from "../service/auth.service";
-import cookieUtils from "../../../utils/cookie.utils";
-
 class AuthController {
   @AsyncHandler()
   async register(req: Request, res: Response, next: NextFunction) {
@@ -128,9 +126,7 @@ class AuthController {
 
     // Set session
     req.session.user = user;
-
-    // Set auth cookie
-    cookieUtils.setAuthCookie(res, tokens.accessToken);
+    req.session.accessToken = tokens.accessToken;
 
     res.status(200).json({
       payload: {

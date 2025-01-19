@@ -1,6 +1,7 @@
 import { NextFunction, Response } from "express";
 import expressAsyncHandler from "express-async-handler";
 import { SessionRequest } from "../types/express";
+import { ForbiddenError, UnauthorizedError } from "./error.utils";
 
 export function AllowedRoles(roles: string[]) {
   return function (
@@ -13,20 +14,20 @@ export function AllowedRoles(roles: string[]) {
     descriptor.value = function (
       ...args: [SessionRequest, Response, NextFunction]
     ) {
-      const [req, res] = args;
+      console.log("HI");
+
+      const [req] = args;
       const user = req.session.user;
 
       if (!user) {
-        return res.status(401).json({ message: "Unauthorized" });
+        throw new UnauthorizedError("Unauthorized");
       }
 
       if (!roles.includes(user.role)) {
-        return res
-          .status(403)
-          .json({ message: "Forbidden - Insufficient role" });
+        throw new ForbiddenError("Forbidden - Insufficient role");
       }
 
-      return originalMethod.apply(this, args);
+      return originalMethod.apply(this as unknown as object, args);
     };
 
     return descriptor;

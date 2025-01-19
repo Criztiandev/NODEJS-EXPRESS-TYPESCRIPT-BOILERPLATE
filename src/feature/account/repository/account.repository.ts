@@ -1,4 +1,4 @@
-import { FilterQuery, Model } from "mongoose";
+import { FilterQuery, Model, ObjectId } from "mongoose";
 import userModel from "../../../model/user.model";
 import { User } from "../../../types/models/user";
 
@@ -32,16 +32,20 @@ class AccountRepository {
     return await this.userModel.create(userData);
   }
 
-  async update(id: string, updateData: Partial<User>) {
-    return await this.userModel
-      .findByIdAndUpdate(id, updateData, {
-        new: true,
-      })
-      .lean();
+  async update(id: ObjectId | string, updateData: Partial<User>) {
+    return await this.userModel.findByIdAndUpdate(id, updateData, {
+      new: true,
+    });
   }
 
   async delete(id: string) {
     return await this.userModel.findByIdAndDelete(id).lean();
+  }
+
+  async updateUser(userId: ObjectId, update: Partial<User>) {
+    return await this.userModel.findByIdAndUpdate(userId, update, {
+      new: true,
+    });
   }
 }
 

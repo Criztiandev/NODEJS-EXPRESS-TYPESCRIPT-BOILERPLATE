@@ -21,9 +21,11 @@ class AccountController {
    */
   @AsyncHandler()
   @AllowedRoles(["user", "admin"])
-  async details(req: Request, res: Response, next: NextFunction) {
-    const userId = "1231231232";
+  async profile(req: Request, res: Response, next: NextFunction) {
+    const userId = req.session.user;
+
     const userProfile = await accountService.getUserProfile(userId);
+
     res.status(200).json({
       payload: userProfile,
       message: "User profile retrieved successfully",
@@ -73,7 +75,7 @@ class AccountController {
   @AsyncHandler()
   @AllowedRoles(["user", "admin"])
   async updateProfile(req: Request, res: Response, next: NextFunction) {
-    const userId = "1231231231";
+    const userId = req.session.user._id;
     const updatedUser = await accountService.updateUser(userId, req.body);
     res.status(200).json({
       payload: updatedUser,

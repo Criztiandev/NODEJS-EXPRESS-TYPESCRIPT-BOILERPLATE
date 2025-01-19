@@ -1,6 +1,7 @@
 import { User } from "../../../types/models/user";
+import { BadRequestError } from "../../../utils/error.utils";
 import accountRepository from "../repository/account.repository";
-import { FilterQuery } from "mongoose";
+import { FilterQuery, ObjectId } from "mongoose";
 
 class AccountService {
   async getUserById(id: string) {
@@ -22,7 +23,14 @@ class AccountService {
     return await accountRepository.create(userData);
   }
 
-  async updateUser(id: string, updateData: Partial<User>) {
+  async updateUser(
+    id: ObjectId | string,
+    updateData: Partial<User>
+  ): Promise<User | null> {
+    if (!id) {
+      throw new BadRequestError("User ID is required");
+    }
+
     return await accountRepository.update(id, updateData);
   }
 

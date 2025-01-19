@@ -63,13 +63,25 @@ class AuthService {
       throw new InputValidationError("Invalid password");
     }
 
+    if (!user._id) {
+      throw new BadRequestError("User ID is required");
+    }
+
     // Generate tokens
     const accessToken = tokenUtils.generateToken({ userId: user._id }, "1h");
     const refreshToken = tokenUtils.generateToken({ userId: user._id }, "7d");
 
+    const updatedCredentilas = await this.accountService.updateUser(user._id, {
+      refreshToken,
+    });
+
+    if (!updatedCredentilas) {
+      throw new BadRequestError("Failed to update user");
+    }
+
     return {
       user: {
-        _id: user.firstName,
+        _id: user._id,
         fullName: `${user.firstName} ${user.lastName}`,
         email: user.email,
         role: user.role,
