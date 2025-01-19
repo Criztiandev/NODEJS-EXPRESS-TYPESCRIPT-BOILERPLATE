@@ -1,9 +1,5 @@
 import express from "express";
-import {
-  errorHandler,
-  notFound,
-  InternalServerError,
-} from "./utils/error.utils";
+import { errorHandler, notFound, ServerError } from "./utils/error.utils";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 import Routes from "./routes";
@@ -15,11 +11,11 @@ import swaggerDocs from "./utils/swagger.utils";
 import config from "./config/config";
 
 if (!config.SESSION_SECRET) {
-  throw new InternalServerError("SESSION SECRET IS NOT DEFINED");
+  throw new ServerError("SESSION SECRET IS NOT DEFINED");
 }
 
 if (!config.COOKIE_SECRET) {
-  throw new InternalServerError("COOKIE SECRET IS NOT DEFINED");
+  throw new ServerError("COOKIE SECRET IS NOT DEFINED");
 }
 
 connectDB();

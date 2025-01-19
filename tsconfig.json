@@ -32,7 +32,12 @@
       "./@types",
       "./node_modules/@types"
     ] /* Specify multiple folders that act like './node_modules/@types'. */,
-    "types": ["node", "express-session", "express"] /* Enable node types */,
+    "types": [
+      "node",
+      "express-session",
+      "express",
+      "error"
+    ] /* Enable node types */,
     // "allowUmdGlobalAccess": true,                     /* Allow accessing UMD globals from modules. */
     // "moduleSuffixes": [],                             /* List of file name suffixes to search when resolving a module. */
     // "allowImportingTsExtensions": true,               /* Allow imports to include TypeScript file extensions. Requires '--moduleResolution bundler' and either '--noEmit' or '--emitDeclarationOnly' to be set. */

@@ -1,9 +1,60 @@
 import { NextFunction, Request, Response } from "express";
+import mongoose from "mongoose";
 
+// Base custom error class
+export class CustomError extends Error {
+  constructor(
+    public message: string,
+    public status: number = 500,
+    public name: string = "CustomError"
+  ) {
+    super(message);
+    this.name = name;
+    // Ensure instanceof works correctly
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+// Specific error classes
+export class BadRequestError extends CustomError {
+  constructor(message: string) {
+    super(message, 400, "BadRequestError");
+  }
+}
+
+export class UnauthorizedError extends CustomError {
+  constructor(message: string) {
+    super(message, 401, "UnauthorizedError");
+  }
+}
+
+export class ForbiddenError extends CustomError {
+  constructor(message: string) {
+    super(message, 403, "ForbiddenError");
+  }
+}
+
+export class NotFoundError extends CustomError {
+  constructor(message: string) {
+    super(message, 404, "NotFoundError");
+  }
+}
+
+export class InputValidationError extends CustomError {
+  constructor(message: string) {
+    super(message, 400, "InputValidationError");
+  }
+}
+
+export class ServerError extends CustomError {
+  constructor(message: string) {
+    super(message, 500, "ServerError");
+  }
+}
+
+// Middleware
 export const notFound = (req: Request, res: Response, next: NextFunction) => {
-  const error = new Error(`Not Found - ${req.originalUrl}`);
-  res.status(404);
-  next(error);
+  next(new NotFoundError(`Not Found - ${req.originalUrl}`));
 };
 
 export const errorHandler = (
@@ -12,102 +63,24 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-  let message = err.message;
+  // Handle mongoose validation errors
+  if (err instanceof mongoose.Error.ValidationError) {
+    return res.status(400).json({
+      error: "Validation Error",
+      details: Object.values(err.errors).map((error) => ({
+        field: error.path,
+        message: error.message,
+      })),
+      stack: process.env.NODE_ENV === "production" ? null : err.stack,
+    });
+  }
 
-  res.status(statusCode).json({
+  // Handle custom errors
+  const status = err instanceof CustomError ? err.status : 500;
+  const message = err.message || "Internal Server Error";
+
+  res.status(status).json({
     error: message,
     stack: process.env.NODE_ENV === "production" ? null : err.stack,
   });
 };
-
-export class BadRequestError extends Error {
-  status: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "BadRequestError";
-    this.status = 400;
-  }
-}
-
-export class InputValidationError extends Error {
-  status: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "InputValidationError";
-    this.status = 400;
-  }
-}
-
-export class ValidationError extends Error {
-  status: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "ValidationError";
-    this.status = 400;
-  }
-}
-
-// validation for if the crendetials are not found
-export class CredentialsNotFoundError extends Error {
-  status: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "CredentialsNotFoundError";
-    this.status = 401;
-  }
-}
-
-export class UnauthorizedError extends Error {
-  status: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "UnauthorizedError";
-    this.status = 401;
-  }
-}
-
-export class NotFoundError extends Error {
-  status: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "NotFoundError";
-    this.status = 404;
-  }
-}
-
-export class InternalServerError extends Error {
-  status: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "InternalServerError";
-    this.status = 500;
-  }
-}
-
-export class ForbiddenError extends Error {
-  status: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "ForbiddenError";
-    this.status = 403;
-  }
-}
-
-export class RateLimitError extends Error {
-  status: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "RateLimitError";
-    this.status = 429;
-  }
-}
-
-export class ConflictError extends Error {
-  status: number;
-  constructor(message: string) {
-    super(message);
-    this.name = "ConflictError";
-    this.status = 409;
-  }
-}
