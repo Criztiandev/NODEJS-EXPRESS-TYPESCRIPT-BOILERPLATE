@@ -4,7 +4,9 @@ const router = Router();
 
 router.get("/profile", accountController.profile);
 router.put("/update", accountController.updateProfile);
-router.delete("/delete", accountController.deleteAccount);
 router.delete("/logout", accountController.logout);
+
+router.delete("/delete", accountController.softDeleteAccount);
+router.put("/restore", accountController.restoreAccount);
 
 export default router;

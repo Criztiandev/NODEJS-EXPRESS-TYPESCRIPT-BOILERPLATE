@@ -5,6 +5,7 @@ import mongoose, {
   Types,
   Query,
   ObjectId,
+  FilterQuery,
 } from "mongoose";
 import { User } from "../types/models/user";
 
@@ -13,7 +14,10 @@ export interface UserDocument extends Omit<User, "_id">, Document {}
 
 interface UserModel extends Model<UserDocument> {
   findAllDeletedAccounts(): Promise<UserDocument[]>;
-  findDeletedAccountById(id: string): Promise<UserDocument | null>;
+  findDeletedAccountById(id: ObjectId | string): Promise<UserDocument | null>;
+  findDeletedAccountByFilter(
+    filter: FilterQuery<UserDocument>
+  ): Promise<UserDocument | null>;
   findDeletedAccountByEmail(email: string): Promise<UserDocument | null>;
   deleteAccount(id: ObjectId | string): Promise<UserDocument | null>;
   restoreAccount(id: ObjectId | string): Promise<UserDocument | null>;
@@ -73,8 +77,35 @@ userSchema.statics.findDeletedAccountById = function (id: string) {
   return this.findOne({ _id: id, isDeleted: true });
 };
 
-userSchema.statics.findDeletedAccountByEmail = function (email: string) {
-  return this.findOne({ email, isDeleted: true });
+userSchema.statics.findDeletedAccountByEmail = async function (email: string) {
+  // Use the native collection to bypass mongoose middleware
+  return this.collection.findOne(
+    {
+      email: email.toLowerCase(), // Since your schema specifies lowercase
+      isDeleted: true,
+    },
+    {
+      projection: {
+        password: 0,
+        refreshToken: 0,
+      },
+    }
+  );
+};
+
+userSchema.statics.findDeletedAccountByFilter = function (
+  filter: FilterQuery<UserDocument>
+) {
+  return this.findOne({ ...filter, isDeleted: true });
+};
+
+userSchema.statics.findAllDeletedAccountByFilter = function (
+  filter: FilterQuery<UserDocument>
+) {
+  return this.collection.find({
+    ...filter,
+    isDeleted: true,
+  });
 };
 
 userSchema.statics.deleteAccount = async function (id: string) {
@@ -98,15 +129,30 @@ userSchema.statics.deleteAccount = async function (id: string) {
   );
 };
 
-userSchema.statics.restoreAccount = function (id: string) {
+userSchema.statics.restoreAccount = async function (id: string) {
   if (!Types.ObjectId.isValid(id)) {
     throw new Error("Invalid ID format");
   }
-  return this.findByIdAndUpdate(
-    id,
-    { $set: { isDeleted: false, deletedAt: null } },
-    { new: true }
+
+  const result = await this.updateOne(
+    { _id: new Types.ObjectId(id) },
+    {
+      $set: {
+        isDeleted: false,
+        deletedAt: null,
+        refreshToken: null,
+      },
+    }
   );
+
+  console.log("Update result:", result);
+
+  if (result.modifiedCount === 0) {
+    throw new Error("Failed to restore account");
+  }
+
+  // Fetch and return the updated document
+  return await this.findById(id);
 };
 
 // Virtual for full name

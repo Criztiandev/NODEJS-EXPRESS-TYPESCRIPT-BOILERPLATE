@@ -9,6 +9,7 @@ import mongoose from "mongoose";
 import { morganSetup } from "./config/morgan.config";
 import swaggerDocs from "./utils/swagger.utils";
 import config from "./config/config";
+import "reflect-metadata";
 
 if (!config.SESSION_SECRET) {
   throw new ServerError("SESSION SECRET IS NOT DEFINED");

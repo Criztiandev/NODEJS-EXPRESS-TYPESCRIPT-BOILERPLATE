@@ -70,6 +70,14 @@ class AccountRepository {
     return this.findAll({ ...options, query });
   }
 
+  async findDeletedAccountById(id: ObjectId | string) {
+    return await userModel.findDeletedAccountById(id);
+  }
+
+  async findDeletedAccountByEmail(email: string) {
+    return await userModel.findDeletedAccountByEmail(email);
+  }
+
   async findByFilter(
     filter: FilterQuery<UserDocument>,
     options?: FindByFilterOptions
@@ -136,8 +144,16 @@ class AccountRepository {
     return user;
   }
 
-  async delete(id: ObjectId | string) {
+  async softDelete(id: ObjectId | string) {
     const user = await userModel.deleteAccount(id);
+    if (!user) {
+      throw new NotFoundError(`User with id ${String(id)} not found`);
+    }
+    return user;
+  }
+
+  async hardDelete(id: ObjectId | string) {
+    const user = await userModel.findByIdAndDelete(id);
     if (!user) {
       throw new NotFoundError(`User with id ${String(id)} not found`);
     }

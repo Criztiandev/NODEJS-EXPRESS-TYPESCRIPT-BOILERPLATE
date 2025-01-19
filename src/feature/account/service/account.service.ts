@@ -84,22 +84,6 @@ class AccountService {
   }
 
   /**
-   * Delete user
-   * @param id - User ID
-   * @returns User ID
-   */
-  async deleteUser(id: ObjectId | string) {
-    // check if user is admin
-    const user = await this.getUserById(id, "_id role");
-
-    if (!user) {
-      throw new BadRequestError("User not found");
-    }
-
-    return await accountRepository.delete(id);
-  }
-
-  /**
    * Get all users
    * @returns All users
    */
@@ -148,6 +132,58 @@ class AccountService {
 
     const updatedUser = await this.updateUser(userId, { refreshToken: "" });
     return updatedUser?._id?.toString() ?? null;
+  }
+
+  /**
+   * Delete user
+   * @param id - User ID
+   * @returns User ID
+   */
+  async softDeleteAccount(id: ObjectId | string) {
+    // check if user is admin
+    const user = await this.getUserById(id, "_id role");
+
+    if (!user) {
+      throw new BadRequestError("User not found");
+    }
+
+    return await accountRepository.softDelete(id);
+  }
+  /**
+   * Delete user
+   * @param id - User ID
+   * @returns User ID
+   */
+  async hardDeleteAccount(id: ObjectId | string) {
+    return [];
+  }
+
+  async restoreAccount(email: string) {
+    // check if the account is already restored
+    const user = await accountRepository.findDeletedAccountByEmail(email);
+    if (!user) {
+      throw new BadRequestError("Account not found");
+    }
+
+    console.log(user);
+
+    // check if the account is deleted on 7 days ago
+    const isDeletedOn7DaysAgo =
+      user.deletedAt &&
+      new Date(user.deletedAt).getTime() + 7 * 24 * 60 * 60 * 1000 < Date.now();
+
+    console.log(isDeletedOn7DaysAgo);
+
+    if (isDeletedOn7DaysAgo) {
+      if (user._id) {
+        await this.hardDeleteAccount(String(user._id));
+      }
+      throw new BadRequestError("Account not deleted on 7 days ago");
+    }
+
+    const restoredUser = await accountRepository.restore(String(user._id));
+    console.log(restoredUser);
+    return restoredUser;
   }
 }
 

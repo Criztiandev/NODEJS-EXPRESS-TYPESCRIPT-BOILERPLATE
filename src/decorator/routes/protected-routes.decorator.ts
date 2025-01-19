@@ -118,7 +118,9 @@ export function ProtectedController() {
         next: NextFunction
       ) {
         try {
-          await validateSession(req);
+          if (!isPublicRoute(constructor.prototype, propertyName)) {
+            await validateSession(req);
+          }
           return await originalMethod.apply(this, [req, res, next]);
         } catch (error) {
           if (error instanceof AuthenticationError) {
@@ -131,4 +133,37 @@ export function ProtectedController() {
       Object.defineProperty(constructor.prototype, propertyName, descriptor);
     });
   };
+}
+
+const publicRoutes = new WeakMap<object, Set<string | symbol>>();
+
+/**
+ * Decorator to mark controller methods as public routes that bypass authentication
+ * @returns MethodDecorator
+ */
+export function PublicRoute() {
+  return function (
+    target: any,
+    propertyKey: string | symbol,
+    descriptor: PropertyDescriptor
+  ) {
+    let routes = publicRoutes.get(target);
+    if (!routes) {
+      routes = new Set();
+      publicRoutes.set(target, routes);
+    }
+    routes.add(propertyKey);
+    return descriptor;
+  };
+}
+
+/**
+ * Helper function to check if a route is marked as public
+ * @param target The class prototype
+ * @param propertyKey The method name
+ * @returns boolean
+ */
+function isPublicRoute(target: any, propertyKey: string | symbol): boolean {
+  const routes = publicRoutes.get(target);
+  return routes ? routes.has(propertyKey) : false;
 }
