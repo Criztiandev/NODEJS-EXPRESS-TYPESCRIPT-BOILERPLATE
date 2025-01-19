@@ -21,7 +21,7 @@ class AccountRepository {
   }
 
   async findById(
-    id: string,
+    id: ObjectId | string,
     select: string | Record<string, number> = "-password -refreshToken"
   ) {
     return await this.userModel.findById(id).select(select).lean();

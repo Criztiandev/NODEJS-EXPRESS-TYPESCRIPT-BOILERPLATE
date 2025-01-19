@@ -4,7 +4,7 @@ import accountRepository from "../repository/account.repository";
 import { FilterQuery, ObjectId } from "mongoose";
 
 class AccountService {
-  async getUserById(id: string) {
+  async getUserById(id: ObjectId | string) {
     return await accountRepository.findById(id);
   }
 
@@ -54,6 +54,25 @@ class AccountService {
     }
     // Remove sensitive data
     return user;
+  }
+
+  async logout(userId: ObjectId | string): Promise<ObjectId | string | null> {
+    console.log(userId);
+
+    if (!userId) {
+      throw new BadRequestError("User Id is required");
+    }
+
+    const user = await this.getUserById(userId);
+
+    if (!user) {
+      throw new BadRequestError("User not found");
+    }
+
+    // update the user refresh token to empty string
+    const updatedUser = await this.updateUser(userId, { refreshToken: "" });
+
+    return updatedUser?._id || null;
   }
 }
 

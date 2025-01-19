@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import accountService from "../service/account.service";
 import { AllowedRoles, AsyncHandler } from "../../../utils/decorator.utils";
 import { ProtectedController } from "../../../decorator/routes/protected-routes.decorator";
+import { BadRequestError } from "../../../utils/error.utils";
 
 @ProtectedController()
 class AccountController {
@@ -9,7 +10,6 @@ class AccountController {
   @AllowedRoles(["user", "admin"])
   async profile(req: Request, res: Response, next: NextFunction) {
     const userId = req.session.user;
-
     const userProfile = await accountService.getUserProfile(userId);
 
     res.status(200).json({
@@ -28,20 +28,6 @@ class AccountController {
     });
   }
 
-  /**
-   * @swagger
-   * /account/profile:
-   *   put:
-   *     summary: Update the user's profile
-   *     description: Update the user's profile information
-   *     responses:
-   *       200:
-   *         description: Profile updated successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/User'
-   */
   @AsyncHandler()
   @AllowedRoles(["user", "admin"])
   async updateProfile(req: Request, res: Response, next: NextFunction) {
@@ -53,22 +39,12 @@ class AccountController {
     });
   }
 
-  /**
-   * @swagger
-   * /account/profile:
-   *   delete:
-   *     summary: Delete the user's account
-   *     description: Delete the user's account
-   *     responses:
-   *       200:
-   *         description: Account deleted successfully
-   */
   @AsyncHandler()
   @AllowedRoles(["user", "admin"])
   async deleteAccount(req: Request, res: Response, next: NextFunction) {
-    const userId = "12313123";
-    req.session.user = "123123123";
+    const userId = req.session.user._id;
     await accountService.deleteUser(userId);
+
     req.session.destroy((err) => {
       if (err) {
         res.status(500).json({
@@ -83,25 +59,18 @@ class AccountController {
     });
   }
 
-  /**
-   * @swagger
-   * /account/logout:
-   *   delete:
-   *     summary: Logout the user
-   *     description: Logout the user
-   *     responses:
-   *       200:
-   *         description: Logged out successfully
-   */
   @AsyncHandler()
   @AllowedRoles(["user", "admin"])
   async logout(req: Request, res: Response, next: NextFunction) {
+    const userId = await accountService.logout(req.session.user._id);
+
+    if (!userId) {
+      throw new BadRequestError("Failed to logout");
+    }
+
     req.session.destroy((err) => {
       if (err) {
-        res.status(500).json({
-          message: "Error logging out",
-        });
-        return;
+        throw new BadRequestError("Failed to logout");
       }
       res.clearCookie("connect.sid");
       res.status(200).json({
