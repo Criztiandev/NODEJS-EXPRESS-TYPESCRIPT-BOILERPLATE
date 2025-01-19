@@ -5,20 +5,6 @@ import { ProtectedController } from "../../../decorator/routes/protected-routes.
 
 @ProtectedController()
 class AccountController {
-  /**
-   * @swagger
-   * /account/profile:
-   *   get:
-   *     summary: Get the user's profile
-   *     description: Retrieve the user's profile information
-   *     responses:
-   *       200:
-   *         description: User profile retrieved successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/User'
-   */
   @AsyncHandler()
   @AllowedRoles(["user", "admin"])
   async profile(req: Request, res: Response, next: NextFunction) {
@@ -32,22 +18,6 @@ class AccountController {
     });
   }
 
-  /**
-   * @swagger
-   * /account/users:
-   *   get:
-   *     summary: Get all users
-   *     description: Retrieve all users
-   *     responses:
-   *       200:
-   *         description: Users retrieved successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: array
-   *               items:
-   *                 $ref: '#/components/schemas/User'
-   */
   @AsyncHandler()
   @AllowedRoles(["admin"])
   async getAllUsers(req: Request, res: Response, next: NextFunction) {

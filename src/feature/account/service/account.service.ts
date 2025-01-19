@@ -53,8 +53,7 @@ class AccountService {
       throw new Error("User not found");
     }
     // Remove sensitive data
-    const { password, ...userProfile } = user;
-    return userProfile;
+    return user;
   }
 }
 

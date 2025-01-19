@@ -14,8 +14,6 @@ export function AllowedRoles(roles: string[]) {
     descriptor.value = function (
       ...args: [SessionRequest, Response, NextFunction]
     ) {
-      console.log("HI");
-
       const [req] = args;
       const user = req.session.user;
 
@@ -24,7 +22,7 @@ export function AllowedRoles(roles: string[]) {
       }
 
       if (!roles.includes(user.role)) {
-        throw new ForbiddenError("Forbidden - Insufficient role");
+        throw new ForbiddenError("Role not allowed");
       }
 
       return originalMethod.apply(this as unknown as object, args);
