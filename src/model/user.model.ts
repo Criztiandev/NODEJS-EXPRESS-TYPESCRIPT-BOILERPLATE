@@ -19,7 +19,8 @@ interface UserModel extends Model<UserDocument> {
     filter: FilterQuery<UserDocument>
   ): Promise<UserDocument | null>;
   findDeletedAccountByEmail(email: string): Promise<UserDocument | null>;
-  deleteAccount(id: ObjectId | string): Promise<UserDocument | null>;
+  softDelete(id: ObjectId | string): Promise<UserDocument | null>;
+  hardDelete(id: ObjectId | string): Promise<UserDocument | null>;
   restoreAccount(id: ObjectId | string): Promise<UserDocument | null>;
 }
 
@@ -108,7 +109,7 @@ userSchema.statics.findAllDeletedAccountByFilter = function (
   });
 };
 
-userSchema.statics.deleteAccount = async function (id: string) {
+userSchema.statics.softDelete = async function (id: string) {
   if (!Types.ObjectId.isValid(id)) {
     throw new Error("Invalid ID format");
   }
@@ -129,6 +130,14 @@ userSchema.statics.deleteAccount = async function (id: string) {
   );
 };
 
+userSchema.statics.hardDelete = async function (id: string) {
+  if (!Types.ObjectId.isValid(id)) {
+    throw new Error("Invalid ID format");
+  }
+
+  return this.collection.deleteOne({ _id: new Types.ObjectId(id) });
+};
+
 userSchema.statics.restoreAccount = async function (id: string) {
   if (!Types.ObjectId.isValid(id)) {
     throw new Error("Invalid ID format");
@@ -144,8 +153,6 @@ userSchema.statics.restoreAccount = async function (id: string) {
       },
     }
   );
-
-  console.log("Update result:", result);
 
   if (result.modifiedCount === 0) {
     throw new Error("Failed to restore account");

@@ -155,7 +155,7 @@ class AccountService {
    * @returns User ID
    */
   async hardDeleteAccount(id: ObjectId | string) {
-    return [];
+    return await accountRepository.hardDelete(id);
   }
 
   async restoreAccount(email: string) {
@@ -165,24 +165,19 @@ class AccountService {
       throw new BadRequestError("Account not found");
     }
 
-    console.log(user);
-
     // check if the account is deleted on 7 days ago
     const isDeletedOn7DaysAgo =
       user.deletedAt &&
       new Date(user.deletedAt).getTime() + 7 * 24 * 60 * 60 * 1000 < Date.now();
 
-    console.log(isDeletedOn7DaysAgo);
-
     if (isDeletedOn7DaysAgo) {
-      if (user._id) {
-        await this.hardDeleteAccount(String(user._id));
-      }
-      throw new BadRequestError("Account not deleted on 7 days ago");
+      await this.hardDeleteAccount(String(user._id));
+      throw new BadRequestError("Account is already deleted");
     }
 
-    const restoredUser = await accountRepository.restore(String(user._id));
-    console.log(restoredUser);
+    const restoredUser = await accountRepository.restoreAccount(
+      String(user._id)
+    );
     return restoredUser;
   }
 }

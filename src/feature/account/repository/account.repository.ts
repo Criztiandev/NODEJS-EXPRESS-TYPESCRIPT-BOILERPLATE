@@ -145,7 +145,7 @@ class AccountRepository {
   }
 
   async softDelete(id: ObjectId | string) {
-    const user = await userModel.deleteAccount(id);
+    const user = await userModel.softDelete(id);
     if (!user) {
       throw new NotFoundError(`User with id ${String(id)} not found`);
     }
@@ -153,14 +153,14 @@ class AccountRepository {
   }
 
   async hardDelete(id: ObjectId | string) {
-    const user = await userModel.findByIdAndDelete(id);
+    const user = await userModel.hardDelete(id);
     if (!user) {
       throw new NotFoundError(`User with id ${String(id)} not found`);
     }
     return user;
   }
 
-  async restore(id: ObjectId | string) {
+  async restoreAccount(id: ObjectId | string) {
     const user = await userModel.restoreAccount(id);
     if (!user) {
       throw new NotFoundError(`User with id ${String(id)} not found`);
