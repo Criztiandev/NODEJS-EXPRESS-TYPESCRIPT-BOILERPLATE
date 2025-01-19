@@ -1,4 +1,6 @@
+import { UserDocument } from "../../../model/user.model";
 import { User } from "../../../types/models/user";
+import EncryptionUtils from "../../../utils/encryption.utils";
 import { BadRequestError, UnauthorizedError } from "../../../utils/error.utils";
 import accountRepository from "../repository/account.repository";
 import { FilterQuery, ObjectId } from "mongoose";
@@ -36,7 +38,7 @@ class AccountService {
     filter: FilterQuery<User>,
     select?: string | Record<string, number>
   ) {
-    return await accountRepository.findByFilter(filter, select);
+    return await accountRepository.findByFilter(filter);
   }
 
   /**
@@ -57,7 +59,7 @@ class AccountService {
   async updateUser(
     id: ObjectId | string,
     updateData: Partial<User>
-  ): Promise<User | null> {
+  ): Promise<UserDocument | null> {
     if (!id) {
       throw new BadRequestError("User ID is required");
     }
@@ -68,14 +70,14 @@ class AccountService {
       throw new BadRequestError("User not found");
     }
 
-    if (updateData.refreshToken) {
-      throw new UnauthorizedError(
-        "You are not authorized to update refresh token"
-      );
-    }
-
     if (updateData.role && user.role !== "admin") {
       throw new UnauthorizedError("You are not authorized to update role");
+    }
+
+    if (updateData.password) {
+      updateData.password = await EncryptionUtils.hashPassword(
+        updateData.password
+      );
     }
 
     return await accountRepository.update(id, updateData);
@@ -135,22 +137,17 @@ class AccountService {
    * @returns User ID
    */
   async logout(userId: ObjectId | string): Promise<ObjectId | string | null> {
-    console.log(userId);
-
     if (!userId) {
       throw new BadRequestError("User Id is required");
     }
 
     const user = await this.getUserById(userId);
-
     if (!user) {
       throw new BadRequestError("User not found");
     }
 
-    // update the user refresh token to empty string
     const updatedUser = await this.updateUser(userId, { refreshToken: "" });
-
-    return updatedUser?._id || null;
+    return updatedUser?._id?.toString() ?? null;
   }
 }
 

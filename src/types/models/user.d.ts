@@ -9,4 +9,6 @@ export type User = {
   password: string;
   role: string;
   refreshToken?: string;
+  isDeleted?: boolean;
+  deletedAt?: Date;
 };

@@ -1,67 +1,171 @@
-import { FilterQuery, Model, ObjectId } from "mongoose";
-import userModel from "../../../model/user.model";
-import { User } from "../../../types/models/user";
+import { FilterQuery, Model, ObjectId, UpdateQuery } from "mongoose";
+import { NotFoundError } from "../../../utils/error.utils";
+import userModel, { UserDocument } from "../../../model/user.model";
+
+interface PaginationOptions {
+  page?: number;
+  limit?: number;
+  sort?: Record<string, 1 | -1>;
+}
+
+interface FindAllOptions extends PaginationOptions {
+  query?: any;
+}
+
+interface FindByFilterOptions extends PaginationOptions {
+  select?: string | Record<string, number>;
+}
+
+interface UpdateOptions {
+  select?: string;
+  runValidators?: boolean;
+}
 
 class AccountRepository {
-  private readonly userModel: Model<User>;
+  constructor(private readonly userModel: Model<UserDocument>) {}
 
-  constructor(userModel: Model<User>) {
-    this.userModel = userModel;
+  private static readonly DEFAULT_SELECT = "-password -refreshToken" as const;
+  private static readonly DEFAULT_PAGE = 1;
+
+  private getPaginationData(total: number, options?: PaginationOptions) {
+    return {
+      page: options?.page ?? AccountRepository.DEFAULT_PAGE,
+      totalPages: options?.limit ? Math.ceil(total / options.limit) : 1,
+      total,
+    };
   }
 
-  async findAll() {
-    return await this.userModel.find().lean().select("-password -refreshToken");
+  private applyPagination(query: any, options?: PaginationOptions) {
+    if (options?.sort) {
+      query.sort(options.sort);
+    }
+
+    if (options?.page && options?.limit) {
+      const skip = (options.page - 1) * options.limit;
+      query.skip(skip).limit(options.limit);
+    }
+
+    return query;
+  }
+
+  async findAll(options?: FindAllOptions) {
+    const query = options?.query || this.userModel.find();
+    query.select(AccountRepository.DEFAULT_SELECT);
+
+    this.applyPagination(query, options);
+
+    const [users, total] = await Promise.all([
+      query.lean(),
+      this.userModel.countDocuments(query.getQuery()),
+    ]);
+
+    return {
+      users,
+      ...this.getPaginationData(total, options),
+    };
+  }
+
+  async findAllDeletedAccount(options?: PaginationOptions) {
+    const query = await userModel.findAllDeletedAccounts();
+    return this.findAll({ ...options, query });
   }
 
   async findByFilter(
-    filter: FilterQuery<User>,
-    select: string | Record<string, number> = "-password -refreshToken"
+    filter: FilterQuery<UserDocument>,
+    options?: FindByFilterOptions
   ) {
-    return await this.userModel.find(filter).select(select).lean();
+    const select = options?.select || AccountRepository.DEFAULT_SELECT;
+    const query = this.userModel.find(filter).select(select);
+
+    this.applyPagination(query, options);
+
+    const [users, total] = await Promise.all([
+      query.lean(),
+      this.userModel.countDocuments(filter),
+    ]);
+
+    return {
+      users,
+      ...this.getPaginationData(total, options),
+    };
   }
 
   async findById(
     id: ObjectId | string,
-    select: string | Record<string, number> = "-password -refreshToken"
+    select: string | Record<string, number> = AccountRepository.DEFAULT_SELECT
   ) {
-    return await this.userModel.findById(id).select(select).lean();
+    const user = await this.userModel.findById(id).select(select).lean();
+    if (!user) {
+      throw new NotFoundError(`User with id ${String(id)} not found`);
+    }
+    return user;
   }
 
-  async findByEmail(email: string, select: string = "-password -refreshToken") {
-    return await this.userModel.findOne({ email }).select(select).lean();
+  async findByEmail(
+    email: string,
+    select: string = AccountRepository.DEFAULT_SELECT
+  ) {
+    const user = await this.userModel.findOne({ email }).select(select).lean();
+    if (!user) {
+      throw new NotFoundError(`User with email ${email} not found`);
+    }
+    return user;
   }
 
-  async create(userData: Partial<User>) {
-    return await this.userModel.create(userData);
+  async create(userData: Partial<UserDocument>) {
+    return this.userModel.create(userData);
   }
 
   async update(
     id: ObjectId | string,
-    updateData: Partial<User>,
-    select: string = "-password -refreshToken"
-  ) {
-    return await this.userModel
+    updateData: UpdateQuery<UserDocument>,
+    options?: UpdateOptions
+  ): Promise<UserDocument> {
+    const user = await this.userModel
       .findByIdAndUpdate(id, updateData, {
         new: true,
+        runValidators: options?.runValidators ?? true,
       })
-      .select(select);
+      .select(options?.select ?? AccountRepository.DEFAULT_SELECT)
+      .lean();
+
+    if (!user) {
+      throw new NotFoundError(`User with id ${String(id as string)} not found`);
+    }
+
+    return user;
   }
 
   async delete(id: ObjectId | string) {
-    return await this.userModel
-      .findByIdAndUpdate(id, {
-        refreshToken: "",
-        isDeleted: true,
-        deletedAt: new Date(),
-      })
-      .lean();
+    const user = await userModel.deleteAccount(id);
+    if (!user) {
+      throw new NotFoundError(`User with id ${String(id)} not found`);
+    }
+    return user;
   }
 
-  async updateUser(userId: ObjectId, update: Partial<User>) {
-    return await this.userModel.findByIdAndUpdate(userId, update, {
-      new: true,
+  async restore(id: ObjectId | string) {
+    const user = await userModel.restoreAccount(id);
+    if (!user) {
+      throw new NotFoundError(`User with id ${String(id)} not found`);
+    }
+    return user;
+  }
+
+  async bulkUpdate(
+    filter: FilterQuery<UserDocument>,
+    update: UpdateQuery<UserDocument>,
+    options?: { runValidators?: boolean }
+  ) {
+    return this.userModel.updateMany(filter, update, {
+      runValidators: options?.runValidators ?? true,
     });
+  }
+
+  async exists(filter: FilterQuery<UserDocument>): Promise<boolean> {
+    return (await this.userModel.exists(filter)) !== null;
   }
 }
 
+// Export a singleton instance
 export default new AccountRepository(userModel);

@@ -1,17 +1,17 @@
 import { Model } from "mongoose";
-import userModel from "../../../model/user.model";
+import userModel, { UserDocument } from "../../../model/user.model";
 import { User } from "../../../types/models/user";
 
 class AuthRepository {
-  private readonly userModel: Model<User>;
+  private readonly userModel: Model<UserDocument>;
 
-  constructor(userModel: Model<User>) {
+  constructor(userModel: Model<UserDocument>) {
     this.userModel = userModel;
   }
 
   // Find user credentials for authentication
   async findUserByEmail(email: string): Promise<User | null> {
-    return await this.userModel.findOne({ email });
+    return await userModel.findOne({ email });
   }
 
   // Update password hash

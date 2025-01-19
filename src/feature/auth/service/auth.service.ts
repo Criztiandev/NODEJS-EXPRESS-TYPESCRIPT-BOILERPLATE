@@ -44,7 +44,7 @@ class AuthService {
       throw new BadRequestError("Failed to create user");
     }
 
-    return { userId: user._id };
+    return { userId: user._id?.toString() ?? "" };
   }
 
   async login(email: string, password: string): Promise<LoginDTO> {

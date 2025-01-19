@@ -46,6 +46,7 @@ class AccountController {
   @AllowedRoles(["user", "admin"])
   async deleteAccount(req: Request, res: Response, next: NextFunction) {
     const userId = req.session.user._id;
+
     await accountService.deleteUser(userId);
 
     req.session.destroy((err) => {
