@@ -2,10 +2,9 @@ import mongoose, {
   Schema,
   Model,
   Document,
-  Types,
   Query,
-  ObjectId,
   FilterQuery,
+  Types,
 } from "mongoose";
 import { User } from "../types/models/user";
 
@@ -14,14 +13,18 @@ export interface UserDocument extends Omit<User, "_id">, Document {}
 
 interface UserModel extends Model<UserDocument> {
   findAllDeletedAccounts(): Promise<UserDocument[]>;
-  findDeletedAccountById(id: ObjectId | string): Promise<UserDocument | null>;
+  findDeletedAccountById(
+    id: Schema.Types.ObjectId | string
+  ): Promise<UserDocument | null>;
   findDeletedAccountByFilter(
     filter: FilterQuery<UserDocument>
   ): Promise<UserDocument | null>;
   findDeletedAccountByEmail(email: string): Promise<UserDocument | null>;
-  softDelete(id: ObjectId | string): Promise<UserDocument | null>;
-  hardDelete(id: ObjectId | string): Promise<UserDocument | null>;
-  restoreAccount(id: ObjectId | string): Promise<UserDocument | null>;
+  softDelete(id: Schema.Types.ObjectId | string): Promise<UserDocument | null>;
+  hardDelete(id: Schema.Types.ObjectId | string): Promise<UserDocument | null>;
+  restoreAccount(
+    id: Schema.Types.ObjectId | string
+  ): Promise<UserDocument | null>;
 }
 
 const userSchema = new Schema<UserDocument>(
@@ -135,7 +138,7 @@ userSchema.statics.hardDelete = async function (id: string) {
     throw new Error("Invalid ID format");
   }
 
-  return this.collection.deleteOne({ _id: new Types.ObjectId(id) });
+  return this.collection.deleteOne({ _id: new Schema.Types.ObjectId(id) });
 };
 
 userSchema.statics.restoreAccount = async function (id: string) {
@@ -144,7 +147,7 @@ userSchema.statics.restoreAccount = async function (id: string) {
   }
 
   const result = await this.updateOne(
-    { _id: new Types.ObjectId(id) },
+    { _id: new Schema.Types.ObjectId(id) },
     {
       $set: {
         isDeleted: false,

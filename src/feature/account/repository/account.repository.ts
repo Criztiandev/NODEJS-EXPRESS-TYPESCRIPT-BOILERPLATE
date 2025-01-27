@@ -1,4 +1,4 @@
-import { FilterQuery, Model, ObjectId, UpdateQuery } from "mongoose";
+import { FilterQuery, Model, Schema, UpdateQuery } from "mongoose";
 import { NotFoundError } from "../../../utils/error.utils";
 import userModel, { UserDocument } from "../../../model/user.model";
 
@@ -70,7 +70,7 @@ class AccountRepository {
     return this.findAll({ ...options, query });
   }
 
-  async findDeletedAccountById(id: ObjectId | string) {
+  async findDeletedAccountById(id: Schema.Types.ObjectId | string) {
     return await userModel.findDeletedAccountById(id);
   }
 
@@ -99,7 +99,7 @@ class AccountRepository {
   }
 
   async findById(
-    id: ObjectId | string,
+    id: Schema.Types.ObjectId | string,
     select: string | Record<string, number> = AccountRepository.DEFAULT_SELECT
   ) {
     const user = await this.userModel.findById(id).select(select).lean();
@@ -125,7 +125,7 @@ class AccountRepository {
   }
 
   async update(
-    id: ObjectId | string,
+    id: Schema.Types.ObjectId | string,
     updateData: UpdateQuery<UserDocument>,
     options?: UpdateOptions
   ): Promise<UserDocument> {
@@ -144,7 +144,7 @@ class AccountRepository {
     return user;
   }
 
-  async softDelete(id: ObjectId | string) {
+  async softDelete(id: Schema.Types.ObjectId | string) {
     const user = await userModel.softDelete(id);
     if (!user) {
       throw new NotFoundError(`User with id ${String(id)} not found`);
@@ -152,7 +152,7 @@ class AccountRepository {
     return user;
   }
 
-  async hardDelete(id: ObjectId | string) {
+  async hardDelete(id: Schema.Types.ObjectId | string) {
     const user = await userModel.hardDelete(id);
     if (!user) {
       throw new NotFoundError(`User with id ${String(id)} not found`);
@@ -160,7 +160,7 @@ class AccountRepository {
     return user;
   }
 
-  async restoreAccount(id: ObjectId | string) {
+  async restoreAccount(id: Schema.Types.ObjectId | string) {
     const user = await userModel.restoreAccount(id);
     if (!user) {
       throw new NotFoundError(`User with id ${String(id)} not found`);

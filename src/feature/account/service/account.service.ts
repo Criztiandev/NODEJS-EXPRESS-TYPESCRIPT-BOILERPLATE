@@ -2,8 +2,9 @@ import { UserDocument } from "../../../model/user.model";
 import { User } from "../../../types/models/user";
 import EncryptionUtils from "../../../utils/encryption.utils";
 import { BadRequestError, UnauthorizedError } from "../../../utils/error.utils";
+import otpService from "../../auth/service/otp.service";
 import accountRepository from "../repository/account.repository";
-import { FilterQuery, ObjectId } from "mongoose";
+import { FilterQuery, Schema } from "mongoose";
 
 class AccountService {
   /**
@@ -13,7 +14,7 @@ class AccountService {
    * @returns User
    */
   async getUserById(
-    id: ObjectId | string,
+    id: Schema.Types.ObjectId | string,
     select: string = "-password -refreshToken"
   ) {
     return await accountRepository.findById(id, select);
@@ -57,7 +58,7 @@ class AccountService {
    * @returns User
    */
   async updateUser(
-    id: ObjectId | string,
+    id: Schema.Types.ObjectId,
     updateData: Partial<User>
   ): Promise<UserDocument | null> {
     if (!id) {
@@ -120,7 +121,9 @@ class AccountService {
    * @param userId - User ID
    * @returns User ID
    */
-  async logout(userId: ObjectId | string): Promise<ObjectId | string | null> {
+  async logout(
+    userId: Schema.Types.ObjectId | string
+  ): Promise<Schema.Types.ObjectId | string | null> {
     if (!userId) {
       throw new BadRequestError("User Id is required");
     }
@@ -130,7 +133,12 @@ class AccountService {
       throw new BadRequestError("User not found");
     }
 
-    const updatedUser = await this.updateUser(userId, { refreshToken: "" });
+    const updatedUser = await this.updateUser(
+      user._id as Schema.Types.ObjectId,
+      {
+        refreshToken: "",
+      }
+    );
     return updatedUser?._id?.toString() ?? null;
   }
 
@@ -139,7 +147,7 @@ class AccountService {
    * @param id - User ID
    * @returns User ID
    */
-  async softDeleteAccount(id: ObjectId | string) {
+  async softDeleteAccount(id: Schema.Types.ObjectId | string) {
     // check if user is admin
     const user = await this.getUserById(id, "_id role");
 
@@ -154,11 +162,11 @@ class AccountService {
    * @param id - User ID
    * @returns User ID
    */
-  async hardDeleteAccount(id: ObjectId | string) {
+  async hardDeleteAccount(id: Schema.Types.ObjectId | string) {
     return await accountRepository.hardDelete(id);
   }
 
-  async restoreAccount(email: string) {
+  async restoreAccount(email: string, otp: string) {
     // check if the account is already restored
     const user = await accountRepository.findDeletedAccountByEmail(email);
     if (!user) {
@@ -173,6 +181,16 @@ class AccountService {
     if (isDeletedOn7DaysAgo) {
       await this.hardDeleteAccount(String(user._id));
       throw new BadRequestError("Account is already deleted");
+    }
+
+    // check if the otp is correct
+    const isValidOtp = await otpService.verifyOTP(
+      user._id as Schema.Types.ObjectId,
+      otp
+    );
+
+    if (!isValidOtp) {
+      throw new BadRequestError("Invalid OTP");
     }
 
     const restoredUser = await accountRepository.restoreAccount(

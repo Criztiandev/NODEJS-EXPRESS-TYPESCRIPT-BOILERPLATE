@@ -1,28 +1,57 @@
-import { ObjectId } from "mongoose";
+import { Schema } from "mongoose";
+import OTPModel, { OTPDocument } from "../../../model/otp.model";
 
 class OTPRepository {
   async findAllActiveOtp() {
-    return true;
+    return await OTPModel.find({
+      expiresAt: { $gt: new Date() },
+      isUsed: false,
+    });
   }
 
   async findAllOtpByUserId(userId: string) {
-    return true;
+    return await OTPModel.find({
+      userId,
+      expiresAt: { $gt: new Date() },
+      isUsed: false,
+    });
   }
 
   async findOtpByUserId(userId: string) {
-    return true;
+    return await OTPModel.findOne({
+      userId,
+      expiresAt: { $gt: new Date() },
+      isUsed: false,
+    });
   }
 
-  async createOtp(userId: ObjectId | string, otp: string) {
-    return true;
+  async findOtpByUIDAndOtp(UID: Schema.Types.ObjectId, otp: string) {
+    return await OTPModel.findValidOTP(UID, otp);
   }
 
-  async updateOtp(userId: string, otp: string) {
-    return true;
+  async createOtp(
+    userId: Schema.Types.ObjectId,
+    otp: string
+  ): Promise<OTPDocument> {
+    return await OTPModel.create({
+      userId,
+      otp,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes expiry
+      isUsed: false,
+    });
+  }
+
+  async updateOtp(userId: Schema.Types.ObjectId | string, otp: string) {
+    return await OTPModel.findOneAndUpdate(
+      { userId, otp },
+      { isUsed: true },
+      { new: true }
+    );
   }
 
   async deleteOtp(userId: string) {
-    return true;
+    return await OTPModel.deleteMany({ userId });
   }
 }
 

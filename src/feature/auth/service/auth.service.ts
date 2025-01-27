@@ -72,11 +72,11 @@ class AuthService {
     const accessToken = tokenUtils.generateToken({ userId: user._id }, "1h");
     const refreshToken = tokenUtils.generateToken({ userId: user._id }, "7d");
 
-    const updatedCredentilas = await this.accountService.updateUser(user._id, {
+    const updatedCredentials = await this.accountService.updateUser(user._id, {
       refreshToken,
     });
 
-    if (!updatedCredentilas) {
+    if (!updatedCredentials) {
       throw new BadRequestError("Failed to update user");
     }
 
