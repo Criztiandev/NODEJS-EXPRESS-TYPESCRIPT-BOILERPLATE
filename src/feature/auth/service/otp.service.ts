@@ -7,8 +7,6 @@ import OtpRepository from "../repository/otp.repository";
 class OTPService {
   private readonly accountService: typeof AccountService;
   private readonly otpRepository: typeof OtpRepository;
-  private readonly OTP_EXPIRY_MINUTES = 5;
-  private readonly MAX_OTP_ATTEMPTS = 3;
   private readonly OTP_RATE_LIMIT_MINUTES = 15;
 
   constructor() {
@@ -16,12 +14,9 @@ class OTPService {
     this.otpRepository = OtpRepository;
   }
 
-  async generateOTP(email: string) {
-    // check if user exist
-    const user = await this.accountService.getUserByEmail(email);
-
-    if (!user) {
-      throw new BadRequestError("User not found");
+  async generateOTP(UID: Schema.Types.ObjectId, email: string) {
+    if (!email) {
+      throw new BadRequestError("Email is required");
     }
 
     // check if otp rate limit
@@ -35,43 +30,31 @@ class OTPService {
 
     const otp = generateOTPUtils();
 
-    const otpRecord = await this.otpRepository.createOtp(
-      user._id as Schema.Types.ObjectId,
-      otp
-    );
+    const otpRecord = await this.otpRepository.createOtp(UID, otp);
 
     return otpRecord;
   }
 
   async verifyOTP(UID: Schema.Types.ObjectId, otp: string) {
-    const otpRecord = await this.otpRepository.findOtpByUIDAndOtp(UID, otp);
-
-    if (!otpRecord) {
-      throw new BadRequestError("Invalid OTP");
-    }
-
-    if (otpRecord.isUsed) {
-      throw new BadRequestError("OTP has already been used");
-    }
-
-    if (new Date() > otpRecord.expiresAt) {
-      throw new BadRequestError("OTP has expired");
-    }
-
+    const otpRecord = await this.otpRepository.findOTPByUIDAndOTP(UID, otp);
     await this.otpRepository.updateOtp(UID, otp);
 
-    return true;
+    return otpRecord;
   }
 
-  async resendOTP(email: string) {
-    const user = await this.accountService.getUserByEmail(email);
+  async verifyOTPByEmail(UID: Schema.Types.ObjectId, email: string) {
+    const otpRecord = await this.otpRepository.findOtpByUserId(UID);
 
-    if (!user) {
-      throw new BadRequestError("User not found");
+    if (otpRecord) {
+      await this.otpRepository.deleteOtp(UID);
     }
 
-    await this.otpRepository.deleteOtp(String(user._id));
-    return this.generateOTP(email);
+    return await this.generateOTP(UID, email);
+  }
+
+  async resendOTP(UID: Schema.Types.ObjectId, email: string) {
+    await this.otpRepository.deleteOtp(UID);
+    return this.generateOTP(UID, email);
   }
 
   async checkOTP(email: string) {
@@ -82,7 +65,7 @@ class OTPService {
     }
 
     const otpRecord = await this.otpRepository.findOtpByUserId(
-      String(user._id)
+      user._id as Schema.Types.ObjectId
     );
     return !!otpRecord;
   }

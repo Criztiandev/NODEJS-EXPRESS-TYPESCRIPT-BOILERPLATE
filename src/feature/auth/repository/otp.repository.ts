@@ -1,5 +1,6 @@
 import { Schema } from "mongoose";
 import OTPModel, { OTPDocument } from "../../../model/otp.model";
+import { BadRequestError } from "../../../utils/error.utils";
 
 class OTPRepository {
   async findAllActiveOtp() {
@@ -17,7 +18,7 @@ class OTPRepository {
     });
   }
 
-  async findOtpByUserId(userId: string) {
+  async findOtpByUserId(userId: Schema.Types.ObjectId) {
     return await OTPModel.findOne({
       userId,
       expiresAt: { $gt: new Date() },
@@ -25,8 +26,27 @@ class OTPRepository {
     });
   }
 
-  async findOtpByUIDAndOtp(UID: Schema.Types.ObjectId, otp: string) {
-    return await OTPModel.findValidOTP(UID, otp);
+  async findOTPByUIDAndOTP(UID: Schema.Types.ObjectId, otp: string) {
+    const otpRecord = await OTPModel.findOne({
+      userId: UID,
+      otp,
+      expiresAt: { $gt: new Date() },
+      isUsed: false,
+    });
+
+    if (!otpRecord) {
+      throw new BadRequestError("Invalid OTP");
+    }
+
+    if (otpRecord.isUsed) {
+      throw new BadRequestError("OTP has already been used");
+    }
+
+    if (new Date() > otpRecord.expiresAt) {
+      throw new BadRequestError("OTP has expired");
+    }
+
+    return otpRecord;
   }
 
   async createOtp(
@@ -50,8 +70,12 @@ class OTPRepository {
     );
   }
 
-  async deleteOtp(userId: string) {
-    return await OTPModel.deleteMany({ userId });
+  async deleteOtp(userId: Schema.Types.ObjectId) {
+    const result = await OTPModel.deleteMany({ userId });
+    if (result.deletedCount === 0) {
+      throw new BadRequestError("OTP not deleted");
+    }
+    return result;
   }
 }
 

@@ -26,7 +26,19 @@ class AccountService {
    * @returns User
    */
   async getUserByEmail(email: string) {
-    return await accountRepository.findByEmail(email);
+    const user = await accountRepository.findByEmail(email);
+    if (!user) {
+      throw new BadRequestError("User not found");
+    }
+    return user;
+  }
+
+  async getDeletedUserByEmail(email: string) {
+    const user = await accountRepository.findDeletedAccountByEmail(email);
+    if (!user) {
+      throw new BadRequestError("User not found");
+    }
+    return user;
   }
 
   /**

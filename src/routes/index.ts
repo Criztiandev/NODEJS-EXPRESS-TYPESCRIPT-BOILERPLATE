@@ -6,7 +6,7 @@ import accountRoutes from "./account/account.routes";
 const Routes = (app: Express) => {
   // Auth Route
   app.use("/api/auth", authRoutes);
-  app.use("/api/otp", otpRoutes);
+  app.use("/api/auth/otp", otpRoutes);
 
   // Account Route
   app.use("/api/account", accountRoutes);
