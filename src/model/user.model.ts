@@ -42,7 +42,7 @@ const userSchema = new Schema<UserDocument>(
       default: "user",
       enum: ["user", "admin"],
     },
-    refreshToken: { type: String, required: false },
+    refreshToken: { type: String, required: false, default: null },
     isDeleted: { type: Boolean, required: false, default: false },
     deletedAt: { type: Date, required: false },
   },

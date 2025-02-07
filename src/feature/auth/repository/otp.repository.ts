@@ -14,7 +14,7 @@ class OTPRepository {
     });
   }
 
-  async findAllOtpByUserId(userId: string) {
+  async findAllOtpByUserId(userId: Schema.Types.ObjectId) {
     return await OTPModel.find({
       userId,
       expiresAt: { $gt: new Date() },
@@ -32,19 +32,10 @@ class OTPRepository {
 
   async findOTPByUIDAndOTP(UID: Schema.Types.ObjectId, otp: string) {
     // Check if user has exceeded max OTP attempts in the last 5 minutes
-    const recentOTPCount = await OTPModel.countDocuments({
-      userId: UID,
-      createdAt: {
-        $gte: new Date(Date.now() - LOCKOUT_DURATION_MS),
-      },
-    });
+    const recentOTPCount = await this.checkOTPAttempts(UID);
 
-    if (recentOTPCount >= MAX_OTP_ATTEMPTS) {
-      throw new BadRequestError(
-        `Too many OTP attempts. Please wait ${Math.ceil(
-          LOCKOUT_DURATION_MS / 60000
-        )} minutes before trying again.`
-      );
+    if (recentOTPCount) {
+      throw new BadRequestError("Too many OTP attempts");
     }
 
     // Find the current OTP record
@@ -84,6 +75,17 @@ class OTPRepository {
       { userId: UID, otp },
       { $set: { isUsed: true } }
     );
+  }
+
+  async checkOTPAttempts(UID: Schema.Types.ObjectId) {
+    const recentOTPCount = await OTPModel.countDocuments({
+      userId: UID,
+      createdAt: {
+        $gte: new Date(Date.now() - LOCKOUT_DURATION_MS),
+      },
+    });
+
+    return recentOTPCount >= MAX_OTP_ATTEMPTS;
   }
 
   async createOtp(

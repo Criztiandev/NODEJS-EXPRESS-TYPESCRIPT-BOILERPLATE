@@ -1,12 +1,19 @@
 import { NextFunction, Request, Response } from "express";
-import { AsyncHandler } from "../../../utils/decorator.utils";
+import { AsyncHandler, ZodValidation } from "../../../utils/decorator.utils";
 import authService from "../service/auth.service";
 import accountService from "../../account/service/account.service";
 import config from "../../../config/config";
 import tokenUtils from "../../../utils/token.utils";
 import otpService from "../service/otp.service";
+import LoginValidation from "../validation/login.validation";
+import RegisterValidation from "../validation/register.validation";
+import ForgotPasswordValidation from "../validation/forgot-password.validation";
+import VerifyEmailValidation from "../validation/verify-email.validation";
+import OtpValidation from "../validation/otp.validation";
+
 class AuthController {
   @AsyncHandler()
+  @ZodValidation(RegisterValidation)
   async register(req: Request, res: Response, next: NextFunction) {
     const { userId } = await authService.register(req.body);
 
@@ -19,6 +26,7 @@ class AuthController {
   }
 
   @AsyncHandler()
+  @ZodValidation(LoginValidation)
   async login(req: Request, res: Response, next: NextFunction) {
     /**
      * @swagger
@@ -44,6 +52,7 @@ class AuthController {
   }
 
   @AsyncHandler()
+  @ZodValidation(ForgotPasswordValidation)
   async forgotPassword(req: Request, res: Response, next: NextFunction) {
     const { email } = req.body;
 
@@ -58,6 +67,7 @@ class AuthController {
   }
 
   @AsyncHandler()
+  @ZodValidation(VerifyEmailValidation)
   async verifyDeletedAccount(req: Request, res: Response, next: NextFunction) {
     const { email } = req.body;
 
@@ -72,6 +82,7 @@ class AuthController {
   }
 
   @AsyncHandler()
+  @ZodValidation(OtpValidation)
   async verifyAccount(req: Request, res: Response, next: NextFunction) {
     const { token } = req.params;
     const { otp } = req.body;

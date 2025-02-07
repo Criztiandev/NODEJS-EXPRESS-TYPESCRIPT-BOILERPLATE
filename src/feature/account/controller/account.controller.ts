@@ -1,6 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import accountService from "../service/account.service";
-import { AllowedRoles, AsyncHandler } from "../../../utils/decorator.utils";
+import {
+  AllowedRoles,
+  AsyncHandler,
+  ZodValidation,
+} from "../../../utils/decorator.utils";
 import {
   ProtectedController,
   PublicRoute,
@@ -8,6 +12,9 @@ import {
 import { BadRequestError } from "../../../utils/error.utils";
 import tokenUtils from "../../../utils/token.utils";
 import { ObjectId } from "mongoose";
+import UpdateAccountValidation from "../validation/update-profile.validation";
+import OtpValidation from "../../auth/validation/otp.validation";
+import ResetPasswordValidation from "../validation/reset-password.validation";
 
 @ProtectedController()
 class AccountController {
@@ -35,9 +42,8 @@ class AccountController {
 
   @AsyncHandler()
   @AllowedRoles(["user", "admin"])
+  @ZodValidation(UpdateAccountValidation)
   async updateProfile(req: Request, res: Response, next: NextFunction) {
-    // Add a zod validation
-
     const userId = req.session.user._id;
     const updatedUser = await accountService.updateUser(userId, req.body);
 
@@ -89,6 +95,7 @@ class AccountController {
 
   @AsyncHandler()
   @PublicRoute()
+  @ZodValidation(OtpValidation)
   async restoreAccount(req: Request, res: Response, next: NextFunction) {
     const { token } = req.params;
     const { otp } = req.body;
@@ -102,9 +109,10 @@ class AccountController {
 
   @AsyncHandler()
   @PublicRoute()
+  @ZodValidation(ResetPasswordValidation)
   async resetPassword(req: Request, res: Response, next: NextFunction) {
     const { token } = req.params;
-    const { password, confirmPassword } = req.body;
+    const { password } = req.body;
 
     const { payload } = tokenUtils.verifyToken(token);
 
@@ -112,8 +120,6 @@ class AccountController {
       payload.UID as ObjectId,
       password
     );
-
-    console.log(result);
 
     res.status(200).json({
       payload: result,

@@ -57,8 +57,22 @@ class OTPService {
   }
 
   async resendOTP(UID: Schema.Types.ObjectId, email: string) {
-    await this.otpRepository.deleteOtp(UID);
-    return this.generateOTP({ UID, email });
+    // check if user has exceeded max OTP attempts in the last 5 minutes
+    const otpCount = await this.otpRepository.checkOTPAttempts(UID);
+
+    if (otpCount) {
+      throw new BadRequestError("Too many OTP attempts");
+    }
+
+    // Try to find existing active OTP
+    const existingOtp = await this.otpRepository.findAllOtpByUserId(UID);
+
+    if (existingOtp.length > 0) {
+      return existingOtp[0];
+    }
+
+    // If no existing OTP found, generate a new one
+    return await this.generateOTP({ email, UID });
   }
 
   async checkOTP(email: string) {
