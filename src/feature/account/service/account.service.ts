@@ -2,9 +2,10 @@ import { UserDocument } from "../../../model/user.model";
 import { User } from "../../../types/models/user";
 import EncryptionUtils from "../../../utils/encryption.utils";
 import { BadRequestError, UnauthorizedError } from "../../../utils/error.utils";
+import tokenUtils from "../../../utils/token.utils";
 import otpService from "../../auth/service/otp.service";
 import accountRepository from "../repository/account.repository";
-import { FilterQuery, Schema } from "mongoose";
+import { FilterQuery, ObjectId, Schema } from "mongoose";
 
 class AccountService {
   /**
@@ -174,13 +175,18 @@ class AccountService {
    * @param id - User ID
    * @returns User ID
    */
-  async hardDeleteAccount(id: Schema.Types.ObjectId | string) {
+  async hardDeleteAccount(id: string) {
     return await accountRepository.hardDelete(id);
   }
 
-  async restoreAccount(email: string, otp: string) {
+  async restoreAccount(token: string, otp: string) {
+    const { payload } = tokenUtils.verifyToken(token);
+
     // check if the account is already restored
-    const user = await accountRepository.findDeletedAccountByEmail(email);
+    const user = await accountRepository.findDeletedAccountByEmail(
+      payload.email
+    );
+
     if (!user) {
       throw new BadRequestError("Account not found");
     }
@@ -196,19 +202,38 @@ class AccountService {
     }
 
     // check if the otp is correct
-    const isValidOtp = await otpService.verifyOTP(
-      user._id as Schema.Types.ObjectId,
-      otp
-    );
+    const isValidOtp = await otpService.verifyOTP(payload.UID, otp);
 
     if (!isValidOtp) {
       throw new BadRequestError("Invalid OTP");
     }
 
     const restoredUser = await accountRepository.restoreAccount(
-      String(user._id)
+      user._id as ObjectId
     );
+
+    if (!restoredUser) {
+      throw new BadRequestError("Failed to restore account");
+    }
+
     return restoredUser;
+  }
+
+  async verfiyDeletedAccount(email: string) {
+    const user = await accountRepository.findDeletedAccountByEmail(email);
+    if (!user) {
+      throw new BadRequestError("Account not found");
+    }
+
+    const token = tokenUtils.generateToken(
+      { email: email, UID: user._id },
+      "1h"
+    );
+    await otpService.generateOTP({ email, UID: user._id as ObjectId });
+
+    return {
+      link: `http://localhost:8000/api/account/restore/${token}`,
+    };
   }
 }
 

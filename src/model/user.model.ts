@@ -19,12 +19,8 @@ interface UserModel extends Model<UserDocument> {
   findDeletedAccountByFilter(
     filter: FilterQuery<UserDocument>
   ): Promise<UserDocument | null>;
-  findDeletedAccountByEmail(email: string): Promise<UserDocument | null>;
   softDelete(id: Schema.Types.ObjectId | string): Promise<UserDocument | null>;
-  hardDelete(id: Schema.Types.ObjectId | string): Promise<UserDocument | null>;
-  restoreAccount(
-    id: Schema.Types.ObjectId | string
-  ): Promise<UserDocument | null>;
+  hardDelete(id: string): Promise<UserDocument | null>;
 }
 
 const userSchema = new Schema<UserDocument>(
@@ -56,16 +52,14 @@ const userSchema = new Schema<UserDocument>(
 );
 
 // Middleware to exclude deleted users by default with correct Query typing
-userSchema.pre(
-  /^find/,
-  function (this: Query<any, Document, {}>, next: (err?: Error) => void) {
+userSchema.pre(/^find/, function (this: Query<any, UserDocument>, next) {
+  // Only apply isDeleted filter if not explicitly querying for deleted items
+  const conditions = this.getFilter();
+  if (!("isDeleted" in conditions)) {
     this.where({ isDeleted: false });
-    this.select("-isDeleted -deletedAt");
-    this.lean();
-
-    next();
   }
-);
+  next();
+});
 
 // Static methods with proper typing
 userSchema.statics.findAllDeletedAccounts = function (
@@ -79,22 +73,6 @@ userSchema.statics.findDeletedAccountById = function (id: string) {
     throw new Error("Invalid ID format");
   }
   return this.findOne({ _id: id, isDeleted: true });
-};
-
-userSchema.statics.findDeletedAccountByEmail = async function (email: string) {
-  // Use the native collection to bypass mongoose middleware
-  return this.collection.findOne(
-    {
-      email: email.toLowerCase(), // Since your schema specifies lowercase
-      isDeleted: true,
-    },
-    {
-      projection: {
-        password: 0,
-        refreshToken: 0,
-      },
-    }
-  );
 };
 
 userSchema.statics.findDeletedAccountByFilter = function (
@@ -138,31 +116,7 @@ userSchema.statics.hardDelete = async function (id: string) {
     throw new Error("Invalid ID format");
   }
 
-  return this.collection.deleteOne({ _id: new Schema.Types.ObjectId(id) });
-};
-
-userSchema.statics.restoreAccount = async function (id: string) {
-  if (!Types.ObjectId.isValid(id)) {
-    throw new Error("Invalid ID format");
-  }
-
-  const result = await this.updateOne(
-    { _id: new Schema.Types.ObjectId(id) },
-    {
-      $set: {
-        isDeleted: false,
-        deletedAt: null,
-        refreshToken: null,
-      },
-    }
-  );
-
-  if (result.modifiedCount === 0) {
-    throw new Error("Failed to restore account");
-  }
-
-  // Fetch and return the updated document
-  return await this.findById(id);
+  return this.collection.deleteOne({ _id: new Types.ObjectId(id) });
 };
 
 // Virtual for full name
@@ -174,3 +128,8 @@ userSchema.virtual("fullName").get(function (this: UserDocument) {
 // Create and export the model
 const UserModel = mongoose.model<UserDocument, UserModel>("User", userSchema);
 export default UserModel;
+
+// remove all the config on the model such as pre define for maximum usage of the modek
+// Finish the OTP tommorow
+
+// Start the barangay management system at barebone

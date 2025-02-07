@@ -5,7 +5,6 @@ const router = Router();
 router.post("/login", authController.login);
 router.post("/register", authController.register);
 router.post("/forgot-password", authController.forgotPassword);
-router.post("/checkpoint/:id", authController.verifyAccount);
-router.put("/checkpoint/change-password/:id", authController.changePassword);
+router.post("/account/verify", authController.verifyDeletedAccount);
 
 export default router;

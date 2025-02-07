@@ -94,26 +94,6 @@ class AuthService {
     };
   }
 
-  async resetPassword(userId: string, newPassword: string) {
-    const hashedPassword = await EncryptionUtils.hashPassword(newPassword);
-    const updated = await this.authRepository.updatePassword(
-      userId,
-      hashedPassword
-    );
-    if (!updated) {
-      throw new BadRequestError("Failed to reset password");
-    }
-    return true;
-  }
-
-  async verifyAccount(checkpoint: string, otp: string) {
-    const user = await this.accountService.getUserByEmail(checkpoint);
-
-    if (!user) {
-      throw new BadRequestError("User not found");
-    }
-  }
-
   async forgotPassword(email: string) {
     const user = await this.accountService.getUserByEmail(email);
 

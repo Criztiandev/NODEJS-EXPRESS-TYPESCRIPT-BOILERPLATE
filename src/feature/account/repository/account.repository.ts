@@ -1,4 +1,4 @@
-import { FilterQuery, Model, Schema, UpdateQuery } from "mongoose";
+import { FilterQuery, Model, ObjectId, Schema, UpdateQuery } from "mongoose";
 import { NotFoundError } from "../../../utils/error.utils";
 import userModel, { UserDocument } from "../../../model/user.model";
 
@@ -75,7 +75,17 @@ class AccountRepository {
   }
 
   async findDeletedAccountByEmail(email: string) {
-    return await userModel.findDeletedAccountByEmail(email);
+    console.log(email);
+    const user = await userModel
+      .findOne({
+        email: "criztiandev@gmail.com",
+        isDeleted: true,
+      })
+      .select("-password -refreshToken");
+
+    console.log(user);
+
+    return user;
   }
 
   async findByFilter(
@@ -113,11 +123,7 @@ class AccountRepository {
     email: string,
     select: string = AccountRepository.DEFAULT_SELECT
   ) {
-    const user = await this.userModel.findOne({ email }).select(select);
-    if (!user) {
-      throw new NotFoundError(`User with email ${email} not found`);
-    }
-    return user;
+    return await this.userModel.findOne({ email }).select(select);
   }
 
   async create(userData: Partial<UserDocument>) {
@@ -152,7 +158,7 @@ class AccountRepository {
     return user;
   }
 
-  async hardDelete(id: Schema.Types.ObjectId | string) {
+  async hardDelete(id: string) {
     const user = await userModel.hardDelete(id);
     if (!user) {
       throw new NotFoundError(`User with id ${String(id)} not found`);
@@ -160,12 +166,14 @@ class AccountRepository {
     return user;
   }
 
-  async restoreAccount(id: Schema.Types.ObjectId | string) {
-    const user = await userModel.restoreAccount(id);
-    if (!user) {
-      throw new NotFoundError(`User with id ${String(id)} not found`);
-    }
-    return user;
+  async restoreAccount(id: ObjectId) {
+    return await userModel.findOneAndUpdate(
+      { _id: id, isDeleted: true },
+      {
+        $set: { isDeleted: false, deletedAt: null, refreshToken: null },
+      },
+      { new: true }
+    );
   }
 
   async bulkUpdate(

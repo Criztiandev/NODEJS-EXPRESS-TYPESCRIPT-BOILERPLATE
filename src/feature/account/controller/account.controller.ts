@@ -88,9 +88,10 @@ class AccountController {
   @AsyncHandler()
   @PublicRoute()
   async restoreAccount(req: Request, res: Response, next: NextFunction) {
-    const { email, otp } = req.body;
+    const { token } = req.params;
+    const { otp } = req.body;
 
-    await accountService.restoreAccount(email, otp);
+    await accountService.restoreAccount(token, otp);
 
     res.status(200).json({
       message: "Account restored successfully",

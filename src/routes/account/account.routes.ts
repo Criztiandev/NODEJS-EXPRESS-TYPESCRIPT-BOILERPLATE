@@ -7,6 +7,6 @@ router.put("/update", accountController.updateProfile);
 router.delete("/logout", accountController.logout);
 
 router.delete("/delete", accountController.softDeleteAccount);
-router.put("/restore", accountController.restoreAccount);
+router.put("/restore/:token", accountController.restoreAccount);
 
 export default router;

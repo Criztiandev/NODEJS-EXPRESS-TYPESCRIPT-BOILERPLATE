@@ -1,4 +1,4 @@
-import { Schema } from "mongoose";
+import { ObjectId, Schema } from "mongoose";
 import { BadRequestError } from "../../../utils/error.utils";
 import { generateOTP as generateOTPUtils } from "../../../utils/generate.utilts";
 import AccountService from "../../account/service/account.service";
@@ -14,19 +14,12 @@ class OTPService {
     this.otpRepository = OtpRepository;
   }
 
-  async generateOTP(UID: Schema.Types.ObjectId, email: string) {
+  async generateOTP({ email, UID }: { email: string; UID: ObjectId }) {
     if (!email) {
       throw new BadRequestError("Email is required");
     }
 
-    // check if otp rate limit
-    const isRateLimited = await this.otpRateLimit(email);
-
-    if (isRateLimited) {
-      throw new BadRequestError(
-        `Please wait ${this.OTP_RATE_LIMIT_MINUTES} minutes before requesting another OTP`
-      );
-    }
+    // Add Rate Limit
 
     const otp = generateOTPUtils();
 
@@ -49,12 +42,12 @@ class OTPService {
       await this.otpRepository.deleteOtp(UID);
     }
 
-    return await this.generateOTP(UID, email);
+    return await this.generateOTP({ UID, email });
   }
 
   async resendOTP(UID: Schema.Types.ObjectId, email: string) {
     await this.otpRepository.deleteOtp(UID);
-    return this.generateOTP(UID, email);
+    return this.generateOTP({ UID, email });
   }
 
   async checkOTP(email: string) {
@@ -68,24 +61,6 @@ class OTPService {
       user._id as Schema.Types.ObjectId
     );
     return !!otpRecord;
-  }
-
-  async otpRateLimit(email: string) {
-    const user = await this.accountService.getUserByEmail(email);
-
-    if (!user) {
-      throw new BadRequestError("User not found");
-    }
-
-    const otpAttempts = await this.otpRepository.findAllOtpByUserId(
-      String(user._id)
-    );
-
-    if (!otpAttempts) {
-      return false;
-    }
-
-    return true;
   }
 }
 

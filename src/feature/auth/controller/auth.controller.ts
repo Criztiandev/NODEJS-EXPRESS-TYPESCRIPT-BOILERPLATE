@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { AsyncHandler } from "../../../utils/decorator.utils";
 import authService from "../service/auth.service";
+import accountService from "../../account/service/account.service";
 class AuthController {
   @AsyncHandler()
   async register(req: Request, res: Response, next: NextFunction) {
@@ -49,32 +50,23 @@ class AuthController {
 
     res.status(200).json({
       payload: {
-        link: `http://localhost:3000/reset-password?checkpoint=${token}&otp=${otp}`,
+        link: `http://localhost:3000/checkpoint/verify?auth=${token}&otp=${otp}`,
       },
       message: "Forgot password successful",
     });
   }
 
   @AsyncHandler()
-  async verifyAccount(req: Request, res: Response, next: NextFunction) {
-    const { checkpoint, otp } = req.body;
+  async verifyDeletedAccount(req: Request, res: Response, next: NextFunction) {
+    const { email } = req.body;
 
-    await authService.verifyAccount(checkpoint, otp);
+    const { link } = await accountService.verfiyDeletedAccount(email);
 
     res.status(200).json({
+      payload: {
+        link,
+      },
       message: "Account verified successfully",
-    });
-  }
-
-  @AsyncHandler()
-  async changePassword(req: Request, res: Response, next: NextFunction) {
-    const userId = "123123123";
-    const { newPassword } = req.body;
-
-    await authService.resetPassword(userId, newPassword);
-
-    res.status(200).json({
-      message: "Password changed successfully",
     });
   }
 }
