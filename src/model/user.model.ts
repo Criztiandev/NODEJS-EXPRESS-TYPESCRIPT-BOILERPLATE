@@ -61,64 +61,6 @@ userSchema.pre(/^find/, function (this: Query<any, UserDocument>, next) {
   next();
 });
 
-// Static methods with proper typing
-userSchema.statics.findAllDeletedAccounts = function (
-  this: Model<UserDocument>
-) {
-  return this.find({ isDeleted: true });
-};
-
-userSchema.statics.findDeletedAccountById = function (id: string) {
-  if (!Types.ObjectId.isValid(id)) {
-    throw new Error("Invalid ID format");
-  }
-  return this.findOne({ _id: id, isDeleted: true });
-};
-
-userSchema.statics.findDeletedAccountByFilter = function (
-  filter: FilterQuery<UserDocument>
-) {
-  return this.findOne({ ...filter, isDeleted: true });
-};
-
-userSchema.statics.findAllDeletedAccountByFilter = function (
-  filter: FilterQuery<UserDocument>
-) {
-  return this.collection.find({
-    ...filter,
-    isDeleted: true,
-  });
-};
-
-userSchema.statics.softDelete = async function (id: string) {
-  if (!Types.ObjectId.isValid(id)) {
-    throw new Error("Invalid ID format");
-  }
-  const user = await this.findById(id);
-  if (!user) {
-    throw new Error("User not found");
-  }
-  return this.findByIdAndUpdate(
-    id,
-    {
-      $set: {
-        isDeleted: true,
-        deletedAt: new Date(),
-        refreshToken: null,
-      },
-    },
-    { new: true }
-  );
-};
-
-userSchema.statics.hardDelete = async function (id: string) {
-  if (!Types.ObjectId.isValid(id)) {
-    throw new Error("Invalid ID format");
-  }
-
-  return this.collection.deleteOne({ _id: new Types.ObjectId(id) });
-};
-
 // Virtual for full name
 userSchema.virtual("fullName").get(function (this: UserDocument) {
   const middleName = this.middleName ? ` ${this.middleName} ` : " ";

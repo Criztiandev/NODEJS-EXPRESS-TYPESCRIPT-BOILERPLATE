@@ -10,6 +10,8 @@ import {
 import { LoginDTO } from "../interface/auth/login.interface";
 import { RegisterDTO } from "../interface/auth/register.interface";
 import { generateOTP } from "../../../utils/generate.utilts";
+import otpService from "./otp.service";
+import { ObjectId } from "mongoose";
 
 class AuthService {
   private readonly authRepository: typeof AuthRepository;
@@ -101,13 +103,10 @@ class AuthService {
       throw new BadRequestError("User not found");
     }
 
-    const token = tokenUtils.generateToken({ userId: user._id }, "1h");
-    const otp = generateOTP();
+    await otpService.generateOTP({ UID: user._id as ObjectId, email });
+    const token = tokenUtils.generateToken({ email, UID: user._id }, "1h");
 
-    return {
-      token,
-      otp,
-    };
+    return { token };
   }
 
   async validateToken(token: string) {

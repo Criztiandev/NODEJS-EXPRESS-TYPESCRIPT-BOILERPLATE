@@ -140,8 +140,7 @@ class AccountRepository {
         new: true,
         runValidators: options?.runValidators ?? true,
       })
-      .select(options?.select ?? AccountRepository.DEFAULT_SELECT)
-      .lean();
+      .select(options?.select ?? AccountRepository.DEFAULT_SELECT);
 
     if (!user) {
       throw new NotFoundError(`User with id ${String(id as string)} not found`);
@@ -151,19 +150,19 @@ class AccountRepository {
   }
 
   async softDelete(id: Schema.Types.ObjectId | string) {
-    const user = await userModel.softDelete(id);
-    if (!user) {
-      throw new NotFoundError(`User with id ${String(id)} not found`);
-    }
-    return user;
+    return await userModel.findOneAndUpdate(
+      { _id: id },
+      {
+        isDeleted: true,
+        deletedAt: new Date(),
+        refreshToken: null,
+      },
+      { new: true }
+    );
   }
 
   async hardDelete(id: string) {
-    const user = await userModel.hardDelete(id);
-    if (!user) {
-      throw new NotFoundError(`User with id ${String(id)} not found`);
-    }
-    return user;
+    return await userModel.findOneAndDelete({ _id: id });
   }
 
   async restoreAccount(id: ObjectId) {

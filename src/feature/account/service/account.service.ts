@@ -1,3 +1,4 @@
+import config from "../../../config/config";
 import { UserDocument } from "../../../model/user.model";
 import { User } from "../../../types/models/user";
 import EncryptionUtils from "../../../utils/encryption.utils";
@@ -219,6 +220,43 @@ class AccountService {
     return restoredUser;
   }
 
+  async resetPassword(UID: ObjectId, newPassword: string) {
+    const user = await this.getUserById(UID, "password");
+
+    if (!user) {
+      throw new BadRequestError("User not found");
+    }
+
+    // First verify that the new password can be properly hashed
+    const isValidHash = await EncryptionUtils.hashPassword(newPassword);
+    if (!isValidHash) {
+      throw new BadRequestError("Invalid password format");
+    }
+
+    const isSamePassword = await EncryptionUtils.comparePassword(
+      newPassword,
+      user.password
+    );
+
+    console.log(isSamePassword);
+
+    if (isSamePassword) {
+      throw new BadRequestError(
+        "New password must be different from the current password"
+      );
+    }
+
+    const updatedUser = await this.updateUser(UID, {
+      password: newPassword,
+    });
+
+    if (!updatedUser) {
+      throw new BadRequestError("Failed to update password");
+    }
+
+    return updatedUser;
+  }
+
   async verfiyDeletedAccount(email: string) {
     const user = await accountRepository.findDeletedAccountByEmail(email);
     if (!user) {
@@ -232,7 +270,23 @@ class AccountService {
     await otpService.generateOTP({ email, UID: user._id as ObjectId });
 
     return {
-      link: `http://localhost:8000/api/account/restore/${token}`,
+      link: `${config.BACKEND_URL}/api/account/restore/${token}`,
+    };
+  }
+
+  async verifyAccount(email: string) {
+    const user = await accountRepository.findByEmail(email);
+    if (!user) {
+      throw new BadRequestError("Account not found");
+    }
+
+    const token = tokenUtils.generateToken(
+      { email: email, UID: user._id, isAllowed: true },
+      "1h"
+    );
+
+    return {
+      link: `${config.BACKEND_URL}/account/reset-password/${token}`,
     };
   }
 }

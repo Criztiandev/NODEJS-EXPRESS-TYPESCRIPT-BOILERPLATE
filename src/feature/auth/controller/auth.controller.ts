@@ -2,6 +2,9 @@ import { NextFunction, Request, Response } from "express";
 import { AsyncHandler } from "../../../utils/decorator.utils";
 import authService from "../service/auth.service";
 import accountService from "../../account/service/account.service";
+import config from "../../../config/config";
+import tokenUtils from "../../../utils/token.utils";
+import otpService from "../service/otp.service";
 class AuthController {
   @AsyncHandler()
   async register(req: Request, res: Response, next: NextFunction) {
@@ -44,13 +47,11 @@ class AuthController {
   async forgotPassword(req: Request, res: Response, next: NextFunction) {
     const { email } = req.body;
 
-    const { token, otp } = await authService.forgotPassword(email);
-
-    // otp will be sent to a platform
+    const { token } = await authService.forgotPassword(email);
 
     res.status(200).json({
       payload: {
-        link: `http://localhost:3000/checkpoint/verify?auth=${token}&otp=${otp}`,
+        link: `${config.BACKEND_URL}/auth/checkpoint/account/verify/${token}`,
       },
       message: "Forgot password successful",
     });
@@ -66,6 +67,22 @@ class AuthController {
       payload: {
         link,
       },
+      message: "Account verified successfully",
+    });
+  }
+
+  @AsyncHandler()
+  async verifyAccount(req: Request, res: Response, next: NextFunction) {
+    const { token } = req.params;
+    const { otp } = req.body;
+
+    const { payload } = tokenUtils.verifyToken(token);
+
+    await otpService.verifyOTP(payload.UID, otp);
+    const { link } = await accountService.verifyAccount(payload.email);
+
+    res.status(200).json({
+      payload: { link },
       message: "Account verified successfully",
     });
   }

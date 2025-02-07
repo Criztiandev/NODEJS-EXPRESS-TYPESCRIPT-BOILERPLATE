@@ -6,6 +6,9 @@ dotenv.config();
 const PORT = Number(process.env.PORT || 8000);
 
 const config = cleanEnv(process.env, {
+  FRONTEND_URL: str({ default: process.env.FRONTEND_URL }),
+  BACKEND_URL: str({ default: process.env.BACKEND_URL }),
+
   NODE_ENV: str({
     choices: ["development", "production"],
     default: "development",
@@ -16,7 +19,7 @@ const config = cleanEnv(process.env, {
   MONGO_URI: str({ default: process.env.MONGO_URI }),
 
   // ===== Session Config =====
-  SESSION_SECRET: str({ default: process.env.SESSION_SECRET  }),
+  SESSION_SECRET: str({ default: process.env.SESSION_SECRET }),
   COOKIE_SECRET: str({ default: process.env.COOKIE_SECRET }),
 
   // ===== Swagger Config =====

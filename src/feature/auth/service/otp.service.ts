@@ -15,22 +15,33 @@ class OTPService {
   }
 
   async generateOTP({ email, UID }: { email: string; UID: ObjectId }) {
-    if (!email) {
-      throw new BadRequestError("Email is required");
+    if (!email || !UID) {
+      throw new BadRequestError("Email and UID are required");
     }
-
-    // Add Rate Limit
 
     const otp = generateOTPUtils();
 
     const otpRecord = await this.otpRepository.createOtp(UID, otp);
+
+    if (!otpRecord) {
+      throw new BadRequestError("Failed to generate OTP");
+    }
 
     return otpRecord;
   }
 
   async verifyOTP(UID: Schema.Types.ObjectId, otp: string) {
     const otpRecord = await this.otpRepository.findOTPByUIDAndOTP(UID, otp);
-    await this.otpRepository.updateOtp(UID, otp);
+
+    if (!otpRecord) {
+      throw new BadRequestError("Invalid OTP");
+    }
+
+    const updatedOtp = await this.otpRepository.updateOtp(UID, otp);
+
+    if (!updatedOtp) {
+      throw new BadRequestError("Failed to update OTP");
+    }
 
     return otpRecord;
   }

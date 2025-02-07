@@ -6,6 +6,8 @@ import {
   PublicRoute,
 } from "../../../decorator/routes/protected-routes.decorator";
 import { BadRequestError } from "../../../utils/error.utils";
+import tokenUtils from "../../../utils/token.utils";
+import { ObjectId } from "mongoose";
 
 @ProtectedController()
 class AccountController {
@@ -94,6 +96,27 @@ class AccountController {
     await accountService.restoreAccount(token, otp);
 
     res.status(200).json({
+      message: "Account restored successfully",
+    });
+  }
+
+  @AsyncHandler()
+  @PublicRoute()
+  async resetPassword(req: Request, res: Response, next: NextFunction) {
+    const { token } = req.params;
+    const { password, confirmPassword } = req.body;
+
+    const { payload } = tokenUtils.verifyToken(token);
+
+    const result = await accountService.resetPassword(
+      payload.UID as ObjectId,
+      password
+    );
+
+    console.log(result);
+
+    res.status(200).json({
+      payload: result,
       message: "Account restored successfully",
     });
   }

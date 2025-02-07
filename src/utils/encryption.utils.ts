@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import { BadRequestError } from "./error.utils";
 
 class EncryptionUtils {
   private static readonly saltRounds = 10;
@@ -21,6 +22,12 @@ class EncryptionUtils {
     password: string,
     hash: string
   ): Promise<boolean> {
+    if (!password || !hash) {
+      throw new BadRequestError(
+        "Password and hash are required for comparison"
+      );
+    }
+
     return bcrypt.compare(password, hash);
   }
 
