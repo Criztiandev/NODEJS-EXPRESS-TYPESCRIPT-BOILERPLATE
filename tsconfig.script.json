@@ -1,0 +1,19 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "baseUrl": "./scripts",
+        "paths": {
+            "@scripts/*": [
+                "./scripts/*"
+            ]
+        }
+    },
+    "include": [
+        "scripts/**/*.ts",
+        "scripts/script.config"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}
