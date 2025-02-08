@@ -1,143 +1,215 @@
-export const serviceTemplate = `
-import { FilterQuery, ObjectId } from "mongoose";
-import caseRepository from "../repository/case.repository";
+export const serviceTemplate = (name: string) => {
+  const capitalizedName = name[0].toUpperCase() + name.slice(1);
+  return `
+  import { FilterQuery, ObjectId } from "mongoose";
+import ${name}Repository from "../repository/${name}.repository";
 import { BadRequestError } from "../../../utils/error.utils";
-import { Case } from "../../../model/case.model";
+import { ${capitalizedName} } from "../../../model/${name}.model";
+import { QueryParams } from "../../../interface/pagination.interface";
 
-class CaseService {
-  async getAllCases(filters: FilterQuery<Case>, select?: string) {
-    return caseRepository.findAllCases(filters, select);
+class ${capitalizedName}Service {
+  // FIND OPERATIONS
+  async getPaginated${capitalizedName}s(queryParams: QueryParams) {
+    // Extract pagination params
+    const page = queryParams.page ? parseInt(queryParams.page) : undefined;
+    const limit = queryParams.limit ? parseInt(queryParams.limit) : undefined;
+
+    const filters: FilterQuery<${capitalizedName}> = {};
+
+    // Add search filter if provided
+    if (queryParams.search) {
+      filters.$or = [
+        { title: { $regex: queryParams.search, $options: "i" } },
+        { description: { $regex: queryParams.search, $options: "i" } },
+      ];
+    }
+
+    // Add status filter if provided
+    if (queryParams.status) {
+      filters.status = queryParams.status;
+    }
+
+    // Add priority filter if provided
+    if (queryParams.priority) {
+      filters.priority = queryParams.priority;
+    }
+
+    // Add date range filter if provided
+    if (queryParams.startDate || queryParams.endDate) {
+      filters.createdAt = {};
+      if (queryParams.startDate) {
+        filters.createdAt.$gte = new Date(queryParams.startDate);
+      }
+      if (queryParams.endDate) {
+        filters.createdAt.$lte = new Date(queryParams.endDate);
+      }
+    }
+
+    return ${name}Repository.findPaginated${capitalizedName}s(filters, undefined, page, limit);
   }
 
-  async getPaginatedCases(
-    filters: FilterQuery<Case>,
-    select?: string,
-    page: number = 1,
-    limit: number = 10
-  ) {
-    return caseRepository.findPaginatedCases(filters, select, page, limit);
+  async getPaginatedSoftDeleted${capitalizedName}s(queryParams: QueryParams) {
+    // Extract pagination params
+    const page = queryParams.page ? parseInt(queryParams.page) : undefined;
+    const limit = queryParams.limit ? parseInt(queryParams.limit) : undefined;
+
+    const filters: FilterQuery<${capitalizedName}> = {
+      isDeleted: true,
+    };
+
+    // Add search filter if provided
+    if (queryParams.search) {
+      filters.$or = [
+        { title: { $regex: queryParams.search, $options: "i" } },
+        { description: { $regex: queryParams.search, $options: "i" } },
+      ];
+    }
+
+    // Add status filter if provided
+    if (queryParams.status) {
+      filters.status = queryParams.status;
+    }
+
+    // Add priority filter if provided
+    if (queryParams.priority) {
+      filters.priority = queryParams.priority;
+    }
+
+    // Add date range filter if provided
+    if (queryParams.startDate || queryParams.endDate) {
+      filters.createdAt = {};
+      if (queryParams.startDate) {
+        filters.createdAt.$gte = new Date(queryParams.startDate);
+      }
+      if (queryParams.endDate) {
+        filters.createdAt.$lte = new Date(queryParams.endDate);
+      }
+    }
+
+    return ${name}Repository.findPaginated${capitalizedName}s(filters, undefined, page, limit);
   }
 
-  async getAllSoftDeletedCases(filters: FilterQuery<Case>, select?: string) {
-    return caseRepository.findAllSoftDeletedCases(filters, select);
-  }
-
-  async getPaginatedSoftDeletedCases(
-    filters: FilterQuery<Case>,
-    select?: string,
-    page: number = 1,
-    limit: number = 10
-  ) {
-    return caseRepository.findPaginatedSoftDeletedCases(
-      filters,
-      select,
-      page,
-      limit
-    );
-  }
-
-  async getCase(caseId: ObjectId | string) {
-    const credentials = await caseRepository.findCaseById(caseId);
+  async get${capitalizedName}(${name}Id: ObjectId | string) {
+    const credentials = await ${name}Repository.find${capitalizedName}ById(${name}Id);
 
     if (!credentials) {
-      throw new BadRequestError("Case not found");
+      throw new BadRequestError("${name} not found");
     }
 
     return credentials;
   }
 
-  async getCaseByFilters(filters: FilterQuery<Case>) {
-    const credentials = await caseRepository.findAllCases(filters);
+  async get${capitalizedName}ByFilters(filters: FilterQuery<${capitalizedName}>) {
+    const credentials = await ${name}Repository.findAll${capitalizedName}s(filters);
 
     if (!credentials) {
-      throw new BadRequestError("Case not found");
+      throw new BadRequestError("${name} not found");
     }
 
     return credentials;
   }
 
-  async getSoftDeletedCase(caseId: ObjectId | string) {
-    const credentials = await caseRepository.findSoftDeletedCaseById(caseId);
+  async getSoftDeleted${capitalizedName}(${name}Id: ObjectId | string) {
+    console.log(await ${name}Repository.findSoftDeleted${capitalizedName}ById(${name}Id));
+    const credentials = await ${name}Repository.findSoftDeleted${capitalizedName}ById(${name}Id);
 
     if (!credentials) {
-      throw new BadRequestError("Case not found");
+      throw new BadRequestError("${name} not found");
     }
 
     return credentials;
   }
 
-  async createCase(payload: Case) {
-    const credentials = await caseRepository.findCaseById(
+  // CREATE OPERATIONS
+  async create${capitalizedName}(payload: ${capitalizedName}) {
+    const credentials = await ${name}Repository.find${capitalizedName}ById(
       payload._id as ObjectId
     );
 
     if (credentials) {
-      throw new BadRequestError("Case already exists");
+      throw new BadRequestError("${capitalizedName} already exists");
     }
 
-    return caseRepository.createCase(payload);
+    return ${name}Repository.create${capitalizedName}(payload);
   }
 
-  async updateCase(id: ObjectId | string, payload: Case) {
-    const credentials = await caseRepository.findCaseById(id);
+  // UPDATE OPERATIONS
+  async update${capitalizedName}(id: ObjectId | string, payload: ${capitalizedName}) {
+    const credentials = await ${name}Repository.find${capitalizedName}ById(id);
 
     if (!credentials) {
-      throw new BadRequestError("Case not found");
+      throw new BadRequestError("${name} not found");
     }
 
-    return caseRepository.updateCaseById(id, payload);
+    return ${name}Repository.update${capitalizedName}ByFilters({ _id: id }, payload);
   }
 
-  async batchUpdateCases(caseIds: ObjectId[] | string[], payload: Case) {
-    const cases = await caseRepository.findAllCases({ _id: { $in: caseIds } });
+  async batchUpdate${capitalizedName}sById(${name}Ids: ObjectId[] | string[], payload: ${capitalizedName}) {
+    const ${name}s = await ${name}Repository.findAll${capitalizedName}s({ _id: { $in: ${name}Ids } });
 
-    if (cases.length !== caseIds.length) {
-      throw new BadRequestError("Case not found");
+
+    if (${name}s.length !== ${name}Ids.length) {
+      throw new BadRequestError("${name} not found");
     }
 
-    return caseRepository.batchUpdateCasesByIds(caseIds, payload);
+    return ${name}Repository.batchUpdate${capitalizedName}sByIds(${name}Ids, payload);
   }
 
-  async softDeleteCase(caseId: ObjectId) {
-    const _case = await caseRepository.findCaseById(caseId);
+  // SOFT DELETE OPERATIONS
+  async softDelete${capitalizedName}(${name}Id: ObjectId) {
+    const result = await ${name}Repository.findSoftDeleted${capitalizedName}ById(${name}Id);
 
-    if (!_case) {
-      throw new BadRequestError("Case not found");
+    console.log(result);
+
+    if (!result) {
+      throw new BadRequestError("${name} not found");
     }
 
-    return caseRepository.softDeleteCaseById(caseId);
+    return ${name}Repository.softDelete${capitalizedName}sByFilters({ _id: ${name}Id });
   }
 
-  async batchSoftDeleteCases(caseIds: ObjectId[] | string[]) {
-    const cases = await caseRepository.findAllCases({ _id: { $in: caseIds } });
+  async batchSoftDelete${capitalizedName}s(${name}Ids: ObjectId[] | string[]) {
+    const ${name}s = await ${name}Repository.findAll${capitalizedName}s({ _id: { $in: ${name}Ids } });
 
-    if (cases.length !== caseIds.length) {
-      throw new BadRequestError("Case not found");
+    if (${name}s.length !== ${name}Ids.length) {
+      throw new BadRequestError("${name} not found");
     }
 
-    return caseRepository.batchSoftDeleteCases(caseIds);
+    return ${name}Repository.batchSoftDelete${capitalizedName}s(${name}Ids);
   }
 
-  async hardDeleteCase(caseId: ObjectId) {
-    const _case = await caseRepository.findCaseById(caseId);
+  async restoreSoftDeleted${capitalizedName}(${name}Id: ObjectId | string) {
+    const credentials = await ${name}Repository.findSoftDeleted${capitalizedName}ById(
+      ${name}Id,
+      "_id"
+    );
 
-    if (!_case) {
-      throw new BadRequestError("Case not found");
+    if (!credentials) {
+      throw new BadRequestError("${name} not found");
     }
 
-    return caseRepository.hardDeleteCaseById(caseId);
+    const result = await ${name}Repository.restoreSoftDeleted${capitalizedName}ById(${name}Id);
+
+    if (!result) {
+      throw new BadRequestError('Failed to restore ${name}');
+    }
+
+    return result;
   }
 
-  async batchHardDeleteCases(caseIds: ObjectId[] | string[]) {
-    const cases = await caseRepository.findAllCases({ _id: { $in: caseIds } });
+  // HARD DELETE OPERATIONS
+  async hardDelete${capitalizedName}(${name}Id: ObjectId) {
+    const _${name} = await ${name}Repository.find${capitalizedName}ById(${name}Id);
 
-    if (cases.length !== caseIds.length) {
-      throw new BadRequestError("Case not found");
+    if (!_${name}) {
+      throw new BadRequestError("${name} not found");
     }
 
-    return caseRepository.batchHardDeleteCases(caseIds);
+    return ${name}Repository.hardDelete${capitalizedName}ById(${name}Id);
   }
 }
 
-export default new CaseService();
-`;
+export default new ${capitalizedName}Service();
+
+  `;
+};

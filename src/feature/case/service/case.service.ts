@@ -2,7 +2,7 @@ import { FilterQuery, ObjectId } from "mongoose";
 import caseRepository from "../repository/case.repository";
 import { BadRequestError } from "../../../utils/error.utils";
 import { Case } from "../../../model/case.model";
-import { QueryParams } from "../interface/pagination.interface";
+import { QueryParams } from "../../../interface/pagination.interface";
 
 class CaseService {
   // FIND OPERATIONS

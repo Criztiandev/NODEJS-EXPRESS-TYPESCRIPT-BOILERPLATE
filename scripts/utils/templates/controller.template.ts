@@ -1,136 +1,170 @@
-export const controllerTemplate = `
+export const controllerTemplate = (name: string) => {
+  const capitalizedName = name[0].toUpperCase() + name.slice(1);
+  return `
 import { NextFunction, Request, Response } from "express";
 import { AsyncHandler } from "../../../utils/decorator.utils";
-import caseService from "../service/case.service";
-import { FilterQuery, ObjectId } from "mongoose";
-import { Case } from "../../../model/case.model";
+import ${name}Service from "../service/${name}.service";
+import { ObjectId } from "mongoose";
+import { QueryParams } from "../../../interface/pagination.interface";
 
-class CaseController {
+
+class ${capitalizedName}Controller {
   @AsyncHandler()
-  async getCase(req: Request, res: Response, next: NextFunction) {
-    const { caseId } = req.params;
+  async get${capitalizedName}Details(req: Request, res: Response, next: NextFunction) {
 
-    const caseCredentials = await caseService.getCase(caseId);
+    const { id: ${name}Id } = req.params;
+
+
+    const ${name}Credentials = await ${name}Service.get${capitalizedName}(${name}Id);
 
     res.status(200).json({
-      payload: caseCredentials,
-      message: "Case retrieved successfully",
+      payload: ${name}Credentials,
+      message: "${name} retrieved successfully",
     });
   }
 
   @AsyncHandler()
-  async getCaseByFilters(req: Request, res: Response, next: NextFunction) {
-    const { filters } = req.query as { filters: FilterQuery<Case> };
+  async getSoftDeleted${capitalizedName}Details(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    const { id: ${name}Id } = req.params;
 
-    const caseCredentials = await caseService.getCaseByFilters(filters);
+    const ${name}Credentials = await ${name}Service.getSoftDeleted${capitalizedName}(${name}Id);
 
     res.status(200).json({
-      payload: caseCredentials,
-      message: "Case retrieved successfully",
+      payload: ${name}Credentials,
+      message: "${name} retrieved successfully",
+    });
+  }
+
+  /**
+   * Get all ${name}s with pagination
+   * /api/${name}s?search=urgent&status=open&priority=high
+   * /api/${name}s?page=1&limit=10
+   */
+  @AsyncHandler()
+  async getAll${capitalizedName}s(req: Request, res: Response, next: NextFunction) {
+    const queryParams: QueryParams = req.query as QueryParams;
+
+    const ${name}Credentials = await ${name}Service.getPaginated${capitalizedName}s(queryParams);
+
+    res.status(200).json({
+      payload: ${name}Credentials,
+      message: "${name}s retrieved successfully",
     });
   }
 
   @AsyncHandler()
-  async getAllCases(req: Request, res: Response, next: NextFunction) {
-    const { page, limit, filters } = req.query;
+  async getAllSoftDeleted${capitalizedName}s(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    const queryParams: QueryParams = req.query as QueryParams;
 
-    const caseCredentials = await caseService.getPaginatedCases(
-      filters as FilterQuery<Case>,
-      undefined, // select parameter
-      Number(page),
-      Number(limit)
+    const ${name}Credentials = await ${name}Service.getPaginatedSoftDeleted${capitalizedName}s(
+      queryParams
     );
 
+
     res.status(200).json({
-      payload: caseCredentials,
-      message: "Cases retrieved successfully",
+      payload: ${name}Credentials,
+      message: "${name}s retrieved successfully",
     });
   }
 
   @AsyncHandler()
-  async createCase(req: Request, res: Response, next: NextFunction) {
-    const caseCredentials = await caseService.createCase(req.body);
+  async create${capitalizedName}(req: Request, res: Response, next: NextFunction) {
+    const ${name}Credentials = await ${name}Service.create${capitalizedName}(req.body);
 
     res.status(200).json({
-      payload: caseCredentials,
-      message: "Case created successfully",
+      payload: ${name}Credentials,
+      message: "${name} created successfully",
     });
   }
 
   @AsyncHandler()
-  async updateCase(req: Request, res: Response, next: NextFunction) {
-    const { caseId } = req.params;
-    const caseCredentials = await caseService.updateCase(caseId, req.body);
+  async restoreSoftDeleted${capitalizedName}(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    const { id: ${name}Id } = req.params;
+    const ${name}Credentials = await ${name}Service.restoreSoftDeleted${capitalizedName}(${name}Id);
 
     res.status(200).json({
-      payload: caseCredentials,
-      message: "Case updated successfully",
+      payload: ${name}Credentials,
+      message: "${name} restored successfully",
     });
   }
 
   @AsyncHandler()
-  async batchUpdateCases(req: Request, res: Response, next: NextFunction) {
-    const { caseIds, updateData } = req.body;
+  async update${capitalizedName}(req: Request, res: Response, next: NextFunction) {
+    const { id: ${name}Id } = req.params;
+    const ${name}Credentials = await ${name}Service.update${capitalizedName}(${name}Id, req.body);
 
-    const caseCredentials = await caseService.batchUpdateCases(
-      caseIds,
+    res.status(200).json({
+      payload: ${name}Credentials,
+      message: "${name} updated successfully",
+    });
+  }
+
+  @AsyncHandler()
+  async batchUpdate${capitalizedName}s(req: Request, res: Response, next: NextFunction) {
+    const { ${name}Ids, updateData } = req.body;
+
+    const ${name}Credentials = await ${name}Service.batchUpdate${capitalizedName}sById(
+      ${name}Ids,
       updateData
     );
 
     res.status(200).json({
-      payload: caseCredentials,
-      message: "Cases updated successfully",
+      payload: ${name}Credentials,
+      message: "${name}s updated successfully",
     });
   }
 
   @AsyncHandler()
-  async softDeleteCase(req: Request, res: Response, next: NextFunction) {
-    const { caseId } = req.params;
-    const caseCredentials = await caseService.softDeleteCase(
-      caseId as unknown as ObjectId
+  async softDelete${capitalizedName}(req: Request, res: Response, next: NextFunction) {
+    const { id: ${name}Id } = req.params;
+
+    const ${name}Credentials = await ${name}Service.softDelete${capitalizedName}(
+      ${name}Id as unknown as ObjectId
     );
 
     res.status(200).json({
-      payload: caseCredentials,
-      message: "Case deleted successfully",
+      payload: ${name}Credentials,
+      message: "${name} deleted successfully",
     });
   }
 
   @AsyncHandler()
-  async hardDeleteCase(req: Request, res: Response, next: NextFunction) {
-    const { caseId } = req.params;
-    const caseCredentials = await caseService.hardDeleteCase(
-      caseId as unknown as ObjectId
+  async hardDelete${capitalizedName}(req: Request, res: Response, next: NextFunction) {
+    const { ${name}Id } = req.params;
+    const ${name}Credentials = await ${name}Service.hardDelete${capitalizedName}(
+      ${name}Id as unknown as ObjectId
     );
 
     res.status(200).json({
-      payload: caseCredentials,
-      message: "Case deleted successfully",
+      payload: ${name}Credentials,
+      message: "${name} deleted successfully",
     });
   }
 
   @AsyncHandler()
-  async batchSoftDeleteCases(req: Request, res: Response, next: NextFunction) {
-    const { caseIds } = req.body;
-    const caseCredentials = await caseService.batchSoftDeleteCases(caseIds);
+  async batchSoftDelete${capitalizedName}s(req: Request, res: Response, next: NextFunction) {
+    const { ${name}Ids } = req.body;
+    const ${name}Credentials = await ${name}Service.batchSoftDelete${capitalizedName}s(${name}Ids);
 
     res.status(200).json({
-      payload: caseCredentials,
-      message: "Cases soft deleted successfully",
-    });
-  }
-
-  @AsyncHandler()
-  async batchHardDeleteCases(req: Request, res: Response, next: NextFunction) {
-    const { caseIds } = req.body;
-    const caseCredentials = await caseService.batchHardDeleteCases(caseIds);
-
-    res.status(200).json({
-      payload: caseCredentials,
-      message: "Cases hard deleted successfully",
+      payload: ${name}Credentials,
+      message: "${name}s soft deleted successfully",
     });
   }
 }
 
-export default new CaseController();
+export default new ${capitalizedName}Controller();
 `;
+};

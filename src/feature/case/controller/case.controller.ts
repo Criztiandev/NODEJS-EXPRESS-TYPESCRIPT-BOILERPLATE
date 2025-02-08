@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { AsyncHandler } from "../../../utils/decorator.utils";
 import caseService from "../service/case.service";
 import { ObjectId } from "mongoose";
-import { QueryParams } from "../interface/pagination.interface";
+import { QueryParams } from "../../../interface/pagination.interface";
 
 class CaseController {
   @AsyncHandler()
