@@ -4,7 +4,6 @@ import mongoose, {
   Document,
   Query,
   FilterQuery,
-  Types,
 } from "mongoose";
 import { User } from "../types/models/user";
 
