@@ -1,5 +1,4 @@
 import mongoose, { ObjectId, Query } from "mongoose";
-import { UserDocument } from "./user.model";
 
 export interface Case {
   _id?: ObjectId | string;
@@ -66,7 +65,7 @@ const caseSchema = new mongoose.Schema(
   }
 );
 
-caseSchema.pre(/^find/, function (this: Query<any, UserDocument>, next) {
+caseSchema.pre(/^find/, function (this: Query<any, Document>, next) {
   const conditions = this.getFilter();
   if (!("isDeleted" in conditions)) {
     this.where({ isDeleted: false });

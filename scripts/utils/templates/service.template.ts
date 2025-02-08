@@ -4,8 +4,9 @@ export const serviceTemplate = (name: string) => {
   import { FilterQuery, ObjectId } from "mongoose";
 import ${name}Repository from "../repository/${name}.repository";
 import { BadRequestError } from "../../../utils/error.utils";
-import { ${capitalizedName} } from "../../../model/${name}.model";
+import { ${capitalizedName} } from "../interface/${name}.interface";
 import { QueryParams } from "../../../interface/pagination.interface";
+
 
 class ${capitalizedName}Service {
   // FIND OPERATIONS

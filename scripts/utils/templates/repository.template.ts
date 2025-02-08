@@ -1,8 +1,9 @@
 export const repositoryTemplate = (name: string) => {
   const capitalizedName = name[0].toUpperCase() + name.slice(1);
   return `
-  import { FilterQuery, ObjectId } from "mongoose";
-import ${name}Model, { ${capitalizedName} } from "../../../model/${name}.model";
+import { FilterQuery, ObjectId } from "mongoose";
+import ${name}Model from "../../../model/${name}.model";
+import { ${capitalizedName} } from "../interface/${name}.interface";
 
 class ${capitalizedName}Repository {
   async findAll${capitalizedName}s(filters: FilterQuery<${capitalizedName}>, select?: string) {

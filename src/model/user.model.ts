@@ -70,8 +70,3 @@ userSchema.virtual("fullName").get(function (this: UserDocument) {
 // Create and export the model
 const UserModel = mongoose.model<UserDocument, UserModel>("User", userSchema);
 export default UserModel;
-
-// remove all the config on the model such as pre define for maximum usage of the modek
-// Finish the OTP tommorow
-
-// Start the barangay management system at barebone

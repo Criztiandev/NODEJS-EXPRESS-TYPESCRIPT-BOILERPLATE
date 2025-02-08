@@ -5,12 +5,11 @@ import scriptConfig from "../../../script.config";
 import { serviceTemplate } from "../../utils/templates/service.template";
 import { controllerTemplate } from "../../utils/templates/controller.template";
 import { repositoryTemplate } from "../../utils/templates/repository.template";
-import { interfaceTemplate } from "../../utils/templates/interface.tempate";
-import { modelTemplate } from "../../utils/templates/model.template";
-import { validationTemplate } from "../../utils/templates/validationTemplate";
+import { generateFiles as generateModel } from "../generate-model/builder";
+import { input } from "../generate-model/input";
 
 // Base directories from config
-const { modelPath, featurePath, routesPath, rootRoutesPath } = scriptConfig;
+const { featurePath, routesPath, rootRoutesPath } = scriptConfig;
 
 // Cache templates to avoid repeated string replacements
 const templateCache = new Map();
@@ -95,18 +94,6 @@ async function generateFiles(
       template: () => getCachedTemplate(controllerTemplate, moduleName),
     },
     {
-      path: path.join(directories.interface, `${moduleName}.interface.ts`),
-      template: () => getCachedTemplate(interfaceTemplate, moduleName),
-    },
-    {
-      path: path.join(modelPath, `${moduleName}.model.ts`),
-      template: () => getCachedTemplate(modelTemplate, moduleName),
-    },
-    {
-      path: path.join(directories.validation, `${moduleName}.validation.ts`),
-      template: () => getCachedTemplate(validationTemplate, moduleName),
-    },
-    {
       path: path.join(`${routesPath}/${moduleName}`, `${moduleName}.routes.ts`),
       template: () => getCachedTemplate(routerTemplate, moduleName),
     },
@@ -158,6 +145,7 @@ async function main() {
 
   const moduleName = args[0].toLowerCase();
   await generateModule(moduleName);
+  await generateModel(moduleName, input);
 }
 
 main().catch(console.error);
