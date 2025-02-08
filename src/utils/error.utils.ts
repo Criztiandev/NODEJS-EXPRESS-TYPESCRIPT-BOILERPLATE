@@ -52,6 +52,12 @@ export class ServerError extends CustomError {
   }
 }
 
+export class ValidationError extends CustomError {
+  constructor(message: string) {
+    super(message, 400, "ValidationError");
+  }
+}
+
 // Middleware
 export const notFound = (req: Request, res: Response, next: NextFunction) => {
   next(new NotFoundError(`Not Found - ${req.originalUrl}`));
