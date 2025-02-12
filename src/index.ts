@@ -26,7 +26,9 @@ const app = express();
 const PORT = config.PORT;
 
 // Define allowed origins
-const allowedOrigins = [config.FRONTEND_URL].filter(Boolean);
+const allowedOrigins = [config.FRONTEND_URL, "http://localhost:5174"].filter(
+  Boolean
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
