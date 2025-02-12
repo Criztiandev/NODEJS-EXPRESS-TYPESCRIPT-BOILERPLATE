@@ -122,7 +122,10 @@ class AccountService {
    * @returns User profile
    */
   async getUserProfile(id: string) {
-    const user = await this.getUserById(id);
+    const user = await this.getUserById(
+      id,
+      "-password -refreshToken -isDeleted -deletedAt -role -updatedAt -createdAt -__v"
+    );
     if (!user) {
       throw new Error("User not found");
     }

@@ -1,11 +1,14 @@
 import { NextFunction, Request, Response } from "express";
-import { AsyncHandler } from "../../../utils/decorator.utils";
+import { AllowedRoles, AsyncHandler } from "../../../utils/decorator.utils";
 import caseService from "../service/case.service";
 import { ObjectId } from "mongoose";
 import { QueryParams } from "../../../interface/pagination.interface";
+import { ProtectedController } from "../../../decorator/routes/protected-routes.decorator";
 
+@ProtectedController()
 class CaseController {
   @AsyncHandler()
+  @AllowedRoles(["user", "admin"])
   async getCaseDetails(req: Request, res: Response, next: NextFunction) {
     const { id: caseId } = req.params;
 
@@ -18,6 +21,7 @@ class CaseController {
   }
 
   @AsyncHandler()
+  @AllowedRoles(["user", "admin"])
   async getSoftDeletedCaseDetails(
     req: Request,
     res: Response,
@@ -39,6 +43,7 @@ class CaseController {
    * /api/cases?page=1&limit=10
    */
   @AsyncHandler()
+  @AllowedRoles(["admin", "user"])
   async getAllCases(req: Request, res: Response, next: NextFunction) {
     const queryParams: QueryParams = req.query as QueryParams;
 
@@ -51,6 +56,7 @@ class CaseController {
   }
 
   @AsyncHandler()
+  @AllowedRoles(["user", "admin"])
   async getAllSoftDeletedCases(
     req: Request,
     res: Response,
@@ -69,6 +75,7 @@ class CaseController {
   }
 
   @AsyncHandler()
+  @AllowedRoles(["user", "admin"])
   async createCase(req: Request, res: Response, next: NextFunction) {
     const caseCredentials = await caseService.createCase(req.body);
 
@@ -79,6 +86,7 @@ class CaseController {
   }
 
   @AsyncHandler()
+  @AllowedRoles(["user", "admin"])
   async restoreSoftDeletedCase(
     req: Request,
     res: Response,
@@ -94,6 +102,7 @@ class CaseController {
   }
 
   @AsyncHandler()
+  @AllowedRoles(["user", "admin"])
   async updateCase(req: Request, res: Response, next: NextFunction) {
     const { id: caseId } = req.params;
     const caseCredentials = await caseService.updateCase(caseId, req.body);
@@ -105,6 +114,7 @@ class CaseController {
   }
 
   @AsyncHandler()
+  @AllowedRoles(["user", "admin"])
   async batchUpdateCases(req: Request, res: Response, next: NextFunction) {
     const { caseIds, updateData } = req.body;
 
@@ -120,6 +130,7 @@ class CaseController {
   }
 
   @AsyncHandler()
+  @AllowedRoles(["user", "admin"])
   async softDeleteCase(req: Request, res: Response, next: NextFunction) {
     const { id: caseId } = req.params;
 
@@ -134,6 +145,7 @@ class CaseController {
   }
 
   @AsyncHandler()
+  @AllowedRoles(["user", "admin"])
   async hardDeleteCase(req: Request, res: Response, next: NextFunction) {
     const { caseId } = req.params;
     const caseCredentials = await caseService.hardDeleteCase(
@@ -147,6 +159,7 @@ class CaseController {
   }
 
   @AsyncHandler()
+  @AllowedRoles(["user", "admin"])
   async batchSoftDeleteCases(req: Request, res: Response, next: NextFunction) {
     const { caseIds } = req.body;
     const caseCredentials = await caseService.batchSoftDeleteCases(caseIds);
