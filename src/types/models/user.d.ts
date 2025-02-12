@@ -5,10 +5,17 @@ export type User = {
   firstName: string;
   middleName?: string;
   lastName: string;
+
   email: string;
+  phoneNumber: string;
   password: string;
-  status?: string;
+
+  fullAddress?: string;
+  barangay: string;
+  city: string;
+
   role: string;
+  status?: string;
   refreshToken?: string;
   isDeleted?: boolean;
   deletedAt?: Date;

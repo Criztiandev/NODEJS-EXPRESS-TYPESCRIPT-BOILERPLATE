@@ -27,6 +27,7 @@ const userSchema = new Schema<UserDocument>(
     firstName: { type: String, required: true, trim: true },
     middleName: { type: String, trim: true },
     lastName: { type: String, required: true, trim: true },
+
     email: {
       type: String,
       required: true,
@@ -34,7 +35,13 @@ const userSchema = new Schema<UserDocument>(
       trim: true,
       lowercase: true,
     },
+    phoneNumber: { type: String, required: true, trim: true },
     password: { type: String, required: true },
+
+    fullAddress: { type: String, required: false, trim: true },
+    barangay: { type: String, required: true, ref: "Barangay" },
+    city: { type: String, required: true, trim: true },
+
     role: {
       type: String,
       required: false,
