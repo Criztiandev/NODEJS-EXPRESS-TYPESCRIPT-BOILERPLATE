@@ -26,3 +26,20 @@
     example: user has many cases
     will be generated as user.model.ts
     but it should be user.model.ts and case.model.ts
+
+7. There is no customization here are the possible prompot
+    - npm generate-module --no controller
+    - npm generate-module --no service
+    - npm generate-module --no route
+    - npm generate-module --no model
+    - npm generate module --private
+    - npm generate module --path=src/feature/auth
+    - npm generate module --path=src/feature/auth --private
+
+8. all this repository, service, controller shoudle be extend from the base class
+    - repository extend from BaseRepository
+    - service extend from BaseService
+    - controller extend from BaseController
+    - the base class should be in the src/core/base
+9. 
+

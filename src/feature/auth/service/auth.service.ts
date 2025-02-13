@@ -2,16 +2,15 @@ import AuthRepository from "../repository/auth.repository";
 import EncryptionUtils from "../../../utils/encryption.utils";
 import tokenUtils from "../../../utils/token.utils";
 import AccountService from "../../account/service/account.service";
-import { User } from "../../../types/models/user";
 import {
   BadRequestError,
   InputValidationError,
 } from "../../../utils/error.utils";
 import { LoginDTO } from "../interface/auth/login.interface";
 import { RegisterDTO } from "../interface/auth/register.interface";
-import { generateOTP } from "../../../utils/generate.utilts";
 import otpService from "./otp.service";
 import { ObjectId } from "mongoose";
+import User from "../../account/interface/user";
 
 class AuthService {
   private readonly authRepository: typeof AuthRepository;

@@ -5,8 +5,7 @@ import mongoose, {
   Query,
   FilterQuery,
 } from "mongoose";
-import { User } from "../types/models/user";
-
+import User from "../feature/account/interface/user";
 // Omit _id from User interface when extending Document
 export interface UserDocument extends Omit<User, "_id">, Document {}
 
@@ -25,7 +24,6 @@ interface UserModel extends Model<UserDocument> {
 const userSchema = new Schema<UserDocument>(
   {
     firstName: { type: String, required: true, trim: true },
-    middleName: { type: String, trim: true },
     lastName: { type: String, required: true, trim: true },
 
     email: {
@@ -35,12 +33,7 @@ const userSchema = new Schema<UserDocument>(
       trim: true,
       lowercase: true,
     },
-    phoneNumber: { type: String, required: true, trim: true },
     password: { type: String, required: true },
-
-    fullAddress: { type: String, required: false, trim: true },
-    barangay: { type: String, required: true, ref: "Barangay" },
-    city: { type: String, required: true, trim: true },
 
     role: {
       type: String,

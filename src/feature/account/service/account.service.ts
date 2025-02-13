@@ -1,12 +1,12 @@
 import config from "../../../config/config";
 import { UserDocument } from "../../../model/user.model";
-import { User } from "../../../types/models/user";
 import EncryptionUtils from "../../../utils/encryption.utils";
 import { BadRequestError, UnauthorizedError } from "../../../utils/error.utils";
 import tokenUtils from "../../../utils/token.utils";
 import otpService from "../../auth/service/otp.service";
 import accountRepository from "../repository/account.repository";
 import { FilterQuery, ObjectId, Schema } from "mongoose";
+import User from "../interface/user";
 
 class AccountService {
   /**
@@ -72,7 +72,7 @@ class AccountService {
    * @returns User
    */
   async updateUser(
-    id: Schema.Types.ObjectId,
+    id: ObjectId,
     updateData: Partial<User>
   ): Promise<UserDocument | null> {
     if (!id) {

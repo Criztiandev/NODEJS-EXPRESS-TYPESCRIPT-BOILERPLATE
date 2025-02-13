@@ -1,4 +1,4 @@
-export interface QueryParams {
+export interface PaginationParams {
   page?: string;
   limit?: string;
   search?: string;
