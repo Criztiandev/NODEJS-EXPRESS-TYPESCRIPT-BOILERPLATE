@@ -6,8 +6,11 @@ import { ${capitalizedName}Document } from "../interface/${name}.interface";
 import ${capitalizedName}Service from "../service/${name}.service";
 
 class ${capitalizedName}Controller extends BaseController<${capitalizedName}Document> {
+  protected service: typeof ${capitalizedName}Service;
+
   constructor() {
     super(${capitalizedName}Service);
+    this.service = ${capitalizedName}Service;
   }
 }
 

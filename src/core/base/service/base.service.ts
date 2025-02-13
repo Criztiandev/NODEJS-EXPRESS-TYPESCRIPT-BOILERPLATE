@@ -22,11 +22,17 @@ export class BaseService<T extends Document & SoftDeleteFields> {
   }
 
   // FIND OPERATIONS
-  async getPaginatedItems(queryParams: QueryParams) {
+  async getPaginatedItems(
+    queryParams: QueryParams,
+    options?: { select?: string }
+  ) {
     const { page, limit } = queryParams;
     const filters: FilterQuery<T> = {};
 
-    return this.repository.findPaginated(filters, undefined, { page, limit });
+    return this.repository.findPaginated(filters, options?.select, {
+      page,
+      limit,
+    });
   }
 
   async getPaginatedSoftDeletedItems(queryParams: QueryParams) {
@@ -47,8 +53,8 @@ export class BaseService<T extends Document & SoftDeleteFields> {
     });
   }
 
-  async getItem(id: ObjectId | string) {
-    const item = await this.repository.findById(id);
+  async getItem(id: ObjectId | string, select?: string) {
+    const item = await this.repository.findById(id, select);
 
     if (!item) {
       throw new BadRequestError("Item not found");
