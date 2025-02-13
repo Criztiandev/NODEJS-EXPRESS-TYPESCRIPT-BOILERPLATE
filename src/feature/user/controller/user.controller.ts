@@ -6,10 +6,6 @@ class UserController extends BaseController<UserDocument> {
   constructor() {
     super(userService);
   }
-
-  protected getResourceName(): string {
-    return "User";
-  }
 }
 
 export default new UserController();
