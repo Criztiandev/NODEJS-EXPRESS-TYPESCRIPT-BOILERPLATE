@@ -8,18 +8,25 @@ export const generateInterface = (
 ): string => {
   const capitalizedName = capitalize(modelName);
 
-  return `
-  import { ObjectId } from "mongoose";
+  // Identation they are not aligned
 
+  return `import { Document, ObjectId } from "mongoose";
+  import { SoftDeleteFields } from "../../../core/base/repository/base.repository";
+  
   export interface ${capitalizedName} {
-  _id?: ObjectId | string;
-${Object.entries(schema)
-  .map(([key, value]) => {
-    const type = value.type.name;
-    return `  ${key}${value.required ? "" : "?"}: ${
-      typeMapping.typescript[type]
-    };`;
-  })
-  .join("\n")}
-}`;
+    _id?: ObjectId | string;
+  ${Object.entries(schema)
+    .map(([key, value]) => {
+      const type = value.type.name;
+      return `  ${key}${value.required ? "" : "?"}: ${
+        typeMapping.typescript[type]
+      };`;
+    })
+    .join("\n")}
+    createdAt: Date;
+    updatedAt: Date;
+  }
+  
+  export interface ${capitalizedName}Document extends Omit<${capitalizedName}, "_id">, Document, SoftDeleteFields {}
+`;
 };

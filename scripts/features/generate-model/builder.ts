@@ -1,11 +1,11 @@
-// generate-model.ts
 import fs from "fs/promises";
 import path from "path";
-import { Schema } from "../../utils/helpers/types.helper";
+import { Schema as MongooseSchema } from "mongoose";
 import { getFeaturePaths } from "../../utils/helpers/other.helper";
 import { generateMongooseModel } from "../../utils/generators/mongoose.generator";
 import { generateInterface } from "../../utils/generators/interface.generator";
 import { generateZodValidation } from "../../utils/generators/zod.generator";
+import { transformMongooseSchema } from "../../utils/helpers/schema-transformer.helper";
 
 const BASE_DIR = path.resolve(process.cwd(), "src");
 const MODEL_DIR = path.join(BASE_DIR, "model");
@@ -23,11 +23,17 @@ async function writeFile(filePath: string, content: string): Promise<void> {
   console.log(`Created ${filePath}`);
 }
 
-async function generateFiles(modelName: string, schema: Schema): Promise<void> {
+async function generateFiles(
+  modelName: string,
+  mongooseSchema: MongooseSchema
+): Promise<void> {
   const { INTERFACE_DIR, VALIDATION_DIR } = getFeaturePaths(
     modelName,
     BASE_DIR
   );
+
+  // Transform the Mongoose schema to our internal schema format
+  const schema = transformMongooseSchema(mongooseSchema);
 
   await Promise.all([
     createDirectory(MODEL_DIR),
@@ -57,8 +63,8 @@ async function main(): Promise<void> {
     const modelName = process.argv[2]?.toLowerCase();
     if (!modelName) throw new Error("Please provide a model name");
 
-    const schema = await import("./input").then((m) => m.input);
-    await generateFiles(modelName, schema);
+    const modelInput = await import("./input").then((m) => m.default);
+    await generateFiles(modelName, modelInput);
     console.log(`Successfully generated files for model: ${modelName}`);
   } catch (error) {
     console.error("Error:", error instanceof Error ? error.message : error);
@@ -66,7 +72,7 @@ async function main(): Promise<void> {
   }
 }
 
-export { generateFiles, type Schema };
+export { generateFiles };
 
 if (require.main === module) {
   main().catch(console.error);
