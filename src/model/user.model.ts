@@ -1,71 +1,64 @@
-import mongoose, {
-  Schema,
-  Model,
-  Document,
-  Query,
-  FilterQuery,
-} from "mongoose";
-import User from "../feature/account/interface/user";
-// Omit _id from User interface when extending Document
-export interface UserDocument extends Omit<User, "_id">, Document {}
-
-interface UserModel extends Model<UserDocument> {
-  findAllDeletedAccounts(): Promise<UserDocument[]>;
-  findDeletedAccountById(
-    id: Schema.Types.ObjectId | string
-  ): Promise<UserDocument | null>;
-  findDeletedAccountByFilter(
-    filter: FilterQuery<UserDocument>
-  ): Promise<UserDocument | null>;
-  softDelete(id: Schema.Types.ObjectId | string): Promise<UserDocument | null>;
-  hardDelete(id: string): Promise<UserDocument | null>;
-}
+import { Query, Schema, model } from "mongoose";
+import { UserDocument } from "../feature/user/interface/user.interface";
 
 const userSchema = new Schema<UserDocument>(
   {
-    firstName: { type: String, required: true, trim: true },
-    lastName: { type: String, required: true, trim: true },
-
+    firstName: {
+      type: String,
+      required: true,
+    },
+    middleName: {
+      type: String,
+      required: false,
+    },
+    lastName: {
+      type: String,
+      required: true,
+    },
     email: {
       type: String,
       required: true,
       unique: true,
-      trim: true,
-      lowercase: true,
     },
-    password: { type: String, required: true },
-
+    phoneNumber: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+    address: {
+      type: String,
+      required: true,
+    },
     role: {
       type: String,
       required: false,
       default: "user",
-      enum: ["user", "admin"],
+      enum: ["user", "admin", "superadmin"],
     },
-    refreshToken: { type: String, required: false, default: null },
-    isDeleted: { type: Boolean, required: false, default: false },
-    deletedAt: { type: Date, required: false },
+    isDeleted: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      required: false,
+      default: null,
+    },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// Middleware to exclude deleted users by default with correct Query typing
+// Pre-middleware with proper typing
 userSchema.pre(/^find/, function (this: Query<any, UserDocument>, next) {
-  // Only apply isDeleted filter if not explicitly querying for deleted items
-  const conditions = this.getFilter();
-  if (!("isDeleted" in conditions)) {
+  if (!("isDeleted" in this.getFilter())) {
     this.where({ isDeleted: false });
   }
   next();
 });
 
-// Virtual for full name
-userSchema.virtual("fullName").get(function (this: UserDocument) {
-  const middleName = this.middleName ? ` ${this.middleName} ` : " ";
-  return `${this.firstName}${middleName}${this.lastName}`;
-});
-
-// Create and export the model
-const UserModel = mongoose.model<UserDocument, UserModel>("User", userSchema);
-export default UserModel;
+export default model<UserDocument>("User", userSchema);

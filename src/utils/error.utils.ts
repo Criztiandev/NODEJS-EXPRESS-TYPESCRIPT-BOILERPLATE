@@ -69,14 +69,17 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  // Handle mongoose validation errors
-  if (err instanceof mongoose.Error.ValidationError) {
-    return res.status(400).json({
-      error: "Validation Error",
-      details: Object.values(err.errors).map((error) => ({
-        field: error.path,
-        message: error.message,
-      })),
+  // Handle mongoose unique field errors (E11000)
+  if (err.name === "MongoServerError" && (err as any).code === 11000) {
+    const field = Object.keys((err as any).keyPattern)[0];
+    return res.status(409).json({
+      error: "Duplicate Key Error",
+      details: [
+        {
+          field,
+          message: `A record with this ${field} already exists`,
+        },
+      ],
       stack: process.env.NODE_ENV === "production" ? null : err.stack,
     });
   }

@@ -33,6 +33,7 @@ export function AllowedRoles(roles: string[]) {
   };
 }
 
+// decorator.utils.ts
 export function AsyncHandler() {
   return function (
     target: any,
@@ -40,7 +41,11 @@ export function AsyncHandler() {
     descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;
-    descriptor.value = expressAsyncHandler(originalMethod);
+    descriptor.value = function (...args: any[]) {
+      return expressAsyncHandler(originalMethod.bind(this))(
+        ...(args as [any, any, any])
+      );
+    };
     return descriptor;
   };
 }
@@ -70,6 +75,7 @@ export function ZodValidation(schema: z.ZodObject<any, any>) {
           return res.status(400).json({
             error: "Invalid data",
             details: errorMessages,
+            stack: process.env.NODE_ENV === "production" ? null : error.stack,
           });
         }
         next(error);

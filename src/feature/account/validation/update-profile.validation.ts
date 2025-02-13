@@ -1,16 +1,6 @@
-import { z } from "zod";
+import { UserValidation } from "../../user/validation/user.validation";
 
-const UpdateAccountValidation = z.object({
-  firstName: z.string().min(3),
-  middleName: z.string().min(3).optional(),
-  lastName: z.string().min(3),
-
-  email: z.string().email(),
-  password: z.string().min(8),
-  role: z.enum(["user", "admin"]).optional(),
-  refreshToken: z.string().optional(),
-  isDeleted: z.boolean().optional(),
-  deletedAt: z.date().optional(),
-});
+// extend the update account validation to user validation
+const UpdateAccountValidation = UserValidation.partial();
 
 export default UpdateAccountValidation;

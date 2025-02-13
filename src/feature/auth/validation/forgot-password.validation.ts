@@ -1,7 +1,7 @@
-import { z } from "zod";
+import { UserValidation } from "../../user/validation/user.validation";
 
-const ForgotPasswordValidation = z.object({
-  email: z.string().email(),
+const ForgotPasswordValidation = UserValidation.pick({
+  email: true,
 });
 
 export default ForgotPasswordValidation;

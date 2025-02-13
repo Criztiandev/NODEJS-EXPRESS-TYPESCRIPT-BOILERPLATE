@@ -1,42 +1,39 @@
+import { ObjectId, Schema } from "mongoose";
 import config from "../../../config/config";
-import { UserDocument } from "../../../model/user.model";
 import EncryptionUtils from "../../../utils/encryption.utils";
 import { BadRequestError, UnauthorizedError } from "../../../utils/error.utils";
 import tokenUtils from "../../../utils/token.utils";
 import otpService from "../../auth/service/otp.service";
-import accountRepository from "../repository/account.repository";
-import { FilterQuery, ObjectId, Schema } from "mongoose";
-import User from "../interface/user";
+import { BaseService } from "../../../core/base/service/base.service";
+import accountRepository, {
+  AccountRepository,
+  AccountDocument,
+} from "../repository/account.repository";
 
-class AccountService {
-  /**
-   * Get user by ID
-   * @param id - User ID
-   * @param select - Select fields
-   * @returns User
-   */
-  async getUserById(
-    id: Schema.Types.ObjectId | string,
-    select: string = "-password -refreshToken"
-  ) {
-    return await accountRepository.findById(id, select);
+export class AccountService extends BaseService<AccountDocument> {
+  private readonly accountRepository: AccountRepository;
+
+  constructor(repository: AccountRepository) {
+    super(repository);
+    this.accountRepository = repository;
   }
 
   /**
-   * Get user by email
-   * @param email - User email
-   * @returns User
+   * Get user by email with proper error handling
    */
   async getUserByEmail(email: string) {
-    const user = await accountRepository.findByEmail(email);
+    const user = await this.accountRepository.findByEmail(email);
     if (!user) {
       throw new BadRequestError("User not found");
     }
     return user;
   }
 
+  /**
+   * Get deleted user by email using repository method
+   */
   async getDeletedUserByEmail(email: string) {
-    const user = await accountRepository.findDeletedAccountByEmail(email);
+    const user = await this.accountRepository.findDeletedAccountByEmail(email);
     if (!user) {
       throw new BadRequestError("User not found");
     }
@@ -44,42 +41,28 @@ class AccountService {
   }
 
   /**
-   * Get users by filter
-   * @param filter - Filter query
-   * @param select - Select fields
-   * @returns Users
+   * Get user profile utilizing repository's findById with select
    */
-  async getUsersByFilter(
-    filter: FilterQuery<User>,
-    select?: string | Record<string, number>
-  ) {
-    return await accountRepository.findByFilter(filter);
+  async getUserProfile(id: string) {
+    const user = await this.accountRepository.findById(
+      id,
+      "-password -refreshToken -isDeleted -deletedAt -role -updatedAt -createdAt -__v"
+    );
+    if (!user) {
+      throw new BadRequestError("User not found");
+    }
+    return user;
   }
 
   /**
-   * Create user
-   * @param userData - User data to create
-   * @returns User
+   * Update user with role validation and password hashing
    */
-  async createUser(userData: Partial<User>) {
-    return await accountRepository.create(userData);
-  }
-
-  /**
-   * Update user
-   * @param id - User ID
-   * @param updateData - User data to update
-   * @returns User
-   */
-  async updateUser(
-    id: ObjectId,
-    updateData: Partial<User>
-  ): Promise<UserDocument | null> {
+  async updateUser(id: ObjectId, updateData: Partial<AccountDocument>) {
     if (!id) {
       throw new BadRequestError("User ID is required");
     }
 
-    const user = await this.getUserById(id, "_id role");
+    const user = await this.accountRepository.findById(id, "_id role");
 
     if (!user) {
       throw new BadRequestError("User not found");
@@ -95,142 +78,39 @@ class AccountService {
       );
     }
 
-    return await accountRepository.update(id, updateData);
+    return await this.accountRepository.updateWithOptions(id, updateData);
   }
 
   /**
-   * Get all users
-   * @returns All users
+   * Logout user by clearing refresh token
    */
-  async getAllUsers() {
-    return await accountRepository.findAll();
-  }
-
-  /**
-   * Check if user exists
-   * @param email - User email
-   * @returns boolean
-   */
-  async checkUserExists(email: string): Promise<boolean> {
-    const user = await this.getUserByEmail(email);
-    return !!user;
-  }
-
-  /**
-   * Get user profile
-   * @param id - User ID
-   * @returns User profile
-   */
-  async getUserProfile(id: string) {
-    const user = await this.getUserById(
-      id,
-      "-password -refreshToken -isDeleted -deletedAt -role -updatedAt -createdAt -__v"
-    );
-    if (!user) {
-      throw new Error("User not found");
-    }
-    // Remove sensitive data
-    return user;
-  }
-
-  /**
-   * Logout user and remove refresh token
-   * @param userId - User ID
-   * @returns User ID
-   */
-  async logout(
-    userId: Schema.Types.ObjectId | string
-  ): Promise<Schema.Types.ObjectId | string | null> {
+  async logout(userId: Schema.Types.ObjectId | string) {
     if (!userId) {
       throw new BadRequestError("User Id is required");
     }
 
-    const user = await this.getUserById(userId);
+    const user = await this.accountRepository.findById(userId);
     if (!user) {
       throw new BadRequestError("User not found");
     }
 
-    const updatedUser = await this.updateUser(
-      user._id as Schema.Types.ObjectId,
-      {
-        refreshToken: "",
-      }
-    );
+    const updatedUser = await this.accountRepository.updateWithOptions(userId, {
+      refreshToken: "",
+    } as Partial<AccountDocument>);
+
     return updatedUser?._id?.toString() ?? null;
   }
 
   /**
-   * Delete user
-   * @param id - User ID
-   * @returns User ID
+   * Reset password with validation and hashing
    */
-  async softDeleteAccount(id: Schema.Types.ObjectId | string) {
-    // check if user is admin
-    const user = await this.getUserById(id, "_id role");
-
-    if (!user) {
-      throw new BadRequestError("User not found");
-    }
-
-    return await accountRepository.softDelete(id);
-  }
-  /**
-   * Delete user
-   * @param id - User ID
-   * @returns User ID
-   */
-  async hardDeleteAccount(id: string) {
-    return await accountRepository.hardDelete(id);
-  }
-
-  async restoreAccount(token: string, otp: string) {
-    const { payload } = tokenUtils.verifyToken(token);
-
-    // check if the account is already restored
-    const user = await accountRepository.findDeletedAccountByEmail(
-      payload.email
-    );
-
-    if (!user) {
-      throw new BadRequestError("Account not found");
-    }
-
-    // check if the account is deleted on 7 days ago
-    const isDeletedOn7DaysAgo =
-      user.deletedAt &&
-      new Date(user.deletedAt).getTime() + 7 * 24 * 60 * 60 * 1000 < Date.now();
-
-    if (isDeletedOn7DaysAgo) {
-      await this.hardDeleteAccount(String(user._id));
-      throw new BadRequestError("Account is already deleted");
-    }
-
-    // check if the otp is correct
-    const isValidOtp = await otpService.verifyOTP(payload.UID, otp);
-
-    if (!isValidOtp) {
-      throw new BadRequestError("Invalid OTP");
-    }
-
-    const restoredUser = await accountRepository.restoreAccount(
-      user._id as ObjectId
-    );
-
-    if (!restoredUser) {
-      throw new BadRequestError("Failed to restore account");
-    }
-
-    return restoredUser;
-  }
-
   async resetPassword(UID: ObjectId, newPassword: string) {
-    const user = await this.getUserById(UID, "password");
+    const user = await this.accountRepository.findById(UID, "password");
 
     if (!user) {
       throw new BadRequestError("User not found");
     }
 
-    // First verify that the new password can be properly hashed
     const isValidHash = await EncryptionUtils.hashPassword(newPassword);
     if (!isValidHash) {
       throw new BadRequestError("Invalid password format");
@@ -241,17 +121,16 @@ class AccountService {
       user.password
     );
 
-    console.log(isSamePassword);
-
     if (isSamePassword) {
       throw new BadRequestError(
         "New password must be different from the current password"
       );
     }
 
-    const updatedUser = await this.updateUser(UID, {
-      password: newPassword,
-    });
+    const hashedPassword = await EncryptionUtils.hashPassword(newPassword);
+    const updatedUser = await this.accountRepository.updateWithOptions(UID, {
+      password: hashedPassword,
+    } as Partial<AccountDocument>);
 
     if (!updatedUser) {
       throw new BadRequestError("Failed to update password");
@@ -260,8 +139,51 @@ class AccountService {
     return updatedUser;
   }
 
+  /**
+   * Restore account with OTP validation
+   */
+  async restoreAccount(token: string, otp: string) {
+    const { payload } = tokenUtils.verifyToken(token);
+
+    const user = await this.accountRepository.findDeletedAccountByEmail(
+      payload.email
+    );
+
+    if (!user) {
+      throw new BadRequestError("Account not found");
+    }
+
+    const isDeletedOn7DaysAgo =
+      user.deletedAt &&
+      new Date(user.deletedAt).getTime() + 7 * 24 * 60 * 60 * 1000 < Date.now();
+
+    if (isDeletedOn7DaysAgo) {
+      await this.accountRepository.hardDeleteById(String(user._id));
+      throw new BadRequestError("Account is already deleted");
+    }
+
+    const isValidOtp = await otpService.verifyOTP(payload.UID, otp);
+
+    if (!isValidOtp) {
+      throw new BadRequestError("Invalid OTP");
+    }
+
+    const restoredUser = await this.accountRepository.restoreAccount(
+      user._id as ObjectId
+    );
+
+    if (!restoredUser) {
+      throw new BadRequestError("Failed to restore account");
+    }
+
+    return restoredUser;
+  }
+
+  /**
+   * Verify deleted account and generate OTP
+   */
   async verfiyDeletedAccount(email: string) {
-    const user = await accountRepository.findDeletedAccountByEmail(email);
+    const user = await this.accountRepository.findDeletedAccountByEmail(email);
     if (!user) {
       throw new BadRequestError("Account not found");
     }
@@ -277,8 +199,11 @@ class AccountService {
     };
   }
 
+  /**
+   * Verify account and generate reset password token
+   */
   async verifyAccount(email: string) {
-    const user = await accountRepository.findByEmail(email);
+    const user = await this.accountRepository.findByEmail(email);
     if (!user) {
       throw new BadRequestError("Account not found");
     }
@@ -294,4 +219,5 @@ class AccountService {
   }
 }
 
-export default new AccountService();
+// Initialize with repository
+export default new AccountService(accountRepository);

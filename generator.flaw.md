@@ -41,5 +41,9 @@
     - service extend from BaseService
     - controller extend from BaseController
     - the base class should be in the src/core/base
-9. 
+9. npm revert last genration
+    - npm generate-module --revert
 
+10. the model doesnt support other mongoose schema field
+
+11. the model generation is a flop
