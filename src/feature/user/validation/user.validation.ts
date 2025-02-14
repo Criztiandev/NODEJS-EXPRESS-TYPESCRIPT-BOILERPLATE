@@ -14,6 +14,30 @@ export const UserValidation = z.object({
     .string()
     .min(1, { message: "lastName must be at least 1 character" })
     .max(155, { message: "lastName must be at most 155 characters" }),
+
+  fullAddress: z.object({
+    street: z
+      .string()
+      .min(1, { message: "street must be at least 1 character" })
+      .max(155, { message: "street must be at most 155 characters" }),
+    barangay: z
+      .string()
+      .min(1, { message: "barangay must be at least 1 character" })
+      .max(155, { message: "barangay must be at most 155 characters" }),
+    city: z
+      .string()
+      .min(1, { message: "city must be at least 1 character" })
+      .max(155, { message: "city must be at most 155 characters" }),
+    province: z
+      .string()
+      .min(1, { message: "province must be at least 1 character" })
+      .max(155, { message: "province must be at most 155 characters" }),
+    postalCode: z
+      .string()
+      .min(1, { message: "postalCode must be at least 1 character" })
+      .max(155, { message: "postalCode must be at most 155 characters" }),
+  }),
+
   email: z
     .string()
     .email({ message: "Invalid email address" })
@@ -28,20 +52,11 @@ export const UserValidation = z.object({
     .min(8, "Password must be at least 8 characters")
     .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
     .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/\d/, "Password must contain at least one number")
     .regex(
-      /[^A-Za-z0-9]/,
+      /[^A-Za-z\d]/,
       "Password must contain at least one special character"
     ),
-  address: z
-    .string()
-    .min(1, { message: "address must be at least 1 character" })
-    .max(155, { message: "address must be at most 155 characters" }),
-  role: z
-    .string()
-    .min(1, { message: "role must be at least 1 character" })
-    .max(155, { message: "role must be at most 155 characters" })
-    .optional(),
 });
 
 export type UserInput = z.infer<typeof UserValidation>;

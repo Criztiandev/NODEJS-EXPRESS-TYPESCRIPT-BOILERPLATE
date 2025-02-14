@@ -15,22 +15,36 @@ const userSchema = new Schema<UserDocument>(
       type: String,
       required: true,
     },
+
+    fullAddress: {
+      street: String,
+      barangay: String,
+      city: String,
+      province: String,
+      postalCode: String,
+    },
+
     email: {
       type: String,
       required: true,
       unique: true,
+      trim: true,
+      lowercase: true,
+    },
+    password: {
+      type: String,
+      required: true,
     },
     phoneNumber: {
       type: String,
       required: true,
       unique: true,
     },
-    password: {
+
+    type: {
       type: String,
-      required: true,
-    },
-    address: {
-      type: String,
+      enum: ["resident", "barangayOfficial", "dilgOfficial", "admin"],
+      default: "resident",
       required: true,
     },
     role: {
@@ -38,6 +52,10 @@ const userSchema = new Schema<UserDocument>(
       required: false,
       default: "user",
       enum: ["user", "admin", "superadmin"],
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
     isDeleted: {
       type: Boolean,

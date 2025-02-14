@@ -10,11 +10,19 @@ export interface User {
   email: string;
   phoneNumber: string;
   password: string;
-  address: string;
-  role?: string;
+  fullAddress: {
+    street: string;
+    barangay: string;
+    city: string;
+    province: string;
+    postalCode: string;
+  };
+  type: "resident" | "barangayOfficial" | "dilgOfficial" | "admin";
+  role?: "user" | "admin" | "superadmin";
   refreshToken?: string;
   createdAt: Date;
   updatedAt: Date;
+  isActive: boolean;
 }
 
 // Make sure UserDocument extends both Document and SoftDeleteFields
