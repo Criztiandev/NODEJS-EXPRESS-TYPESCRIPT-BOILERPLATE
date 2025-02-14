@@ -7,7 +7,7 @@ export interface Notification {
   type: string;
   title: string;
   message: string;
-  relatedCase?: ObjectId | string;
+  relatedCase?: ObjectId;
   isRead?: boolean;
   readAt?: Date;
   deliveryMethod: string;

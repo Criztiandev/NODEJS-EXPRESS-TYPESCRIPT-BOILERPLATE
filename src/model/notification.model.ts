@@ -11,7 +11,14 @@ const notificationSchema = new Schema(
     type: {
       type: String,
       required: true,
-      enum: ["hearing", "document", "settlement", "status", "system"],
+      enum: [
+        "hearing",
+        "document",
+        "settlement",
+        "status",
+        "system",
+        "case_filing",
+      ],
     },
     title: {
       type: String,

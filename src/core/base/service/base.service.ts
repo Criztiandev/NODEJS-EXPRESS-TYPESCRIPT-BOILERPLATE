@@ -54,12 +54,8 @@ export class BaseService<T extends Document & SoftDeleteFields> {
     });
   }
 
-  async getItem(id: ObjectId | string, select?: string): Promise<T> {
-    const item = await this.repository.findById(id);
-    if (!item) {
-      throw new BadRequestError("Item not found");
-    }
-    return item;
+  async getItem(id: ObjectId | string, select?: string): Promise<T | null> {
+    return await this.repository.findById(id, select);
   }
 
   async getSoftDeletedItem(id: ObjectId | string): Promise<T> {

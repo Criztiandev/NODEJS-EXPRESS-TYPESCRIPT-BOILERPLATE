@@ -2,7 +2,7 @@ import { NextFunction, Response } from "express";
 import expressAsyncHandler from "express-async-handler";
 import { SessionRequest } from "../types/express";
 import { ForbiddenError, UnauthorizedError } from "./error.utils";
-import { z, ZodError } from "zod";
+import { ZodError, ZodObject } from "zod";
 
 export function AllowedRoles(roles: string[]) {
   return function (
@@ -51,7 +51,7 @@ export function AsyncHandler() {
 }
 
 // Decorator to validate request body using zod
-export function ZodValidation(schema: z.ZodObject<any, any>) {
+export function ZodValidation(schema: ZodObject<any, any>) {
   return function (
     target: any,
     propertyKey: string,
@@ -59,29 +59,40 @@ export function ZodValidation(schema: z.ZodObject<any, any>) {
   ) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function (
-      req: Request,
-      res: Response,
-      next: NextFunction
-    ) {
-      try {
-        schema.parse(req.body);
-        return await originalMethod.apply(this, [req, res, next]);
-      } catch (error) {
-        if (error instanceof ZodError) {
-          const errorMessages = error.errors.map((issue) => ({
-            message: `${issue.path.join(".")} is ${issue.message}`,
-          }));
-          return res.status(400).json({
-            error: "Invalid data",
-            details: errorMessages,
-            stack: process.env.NODE_ENV === "production" ? null : error.stack,
-          });
+    // Create a new method that includes validation
+    descriptor.value = function (req: any, res: Response, next: NextFunction) {
+      const validateAndExecute = async () => {
+        try {
+          // Validate the request body
+          req.body = await schema.parseAsync(req.body);
+          // Call the original method with the current context
+          return await originalMethod.call(this, req, res, next);
+        } catch (error) {
+          if (error instanceof ZodError) {
+            return res.status(400).json({
+              error: "Validation failed",
+              details: getZodError(error),
+              stack:
+                process.env.NODE_ENV === "development" ? error.stack : null,
+            });
+          }
+          throw error; // Let AsyncHandler catch other errors
         }
-        next(error);
-      }
+      };
+
+      // Return the validation promise
+      return validateAndExecute();
     };
 
     return descriptor;
   };
+}
+
+// Helper functionms
+
+export function getZodError(error: ZodError) {
+  return error.errors.map((e) => ({
+    path: e.path.join("."),
+    message: e.message,
+  }));
 }

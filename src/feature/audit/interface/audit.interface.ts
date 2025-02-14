@@ -3,16 +3,17 @@ import { SoftDeleteFields } from "../../../core/base/repository/base.repository"
 
 export interface Audit {
   _id?: ObjectId | string;
-  user: undefined;
   action: string;
+  actionMessage?: string;
   entityType: string;
-  entityId: undefined;
+  entityId: ObjectId | string;
   changes: {
     before?: any;
     after?: any;
   };
   ipAddress?: string;
   userAgent?: string;
+  createdBy: ObjectId | string;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -1,11 +1,16 @@
 import { z } from "zod";
 
 export const AuditSchema = z.object({
-  user: z.string().min(1, { message: "user is required" }),
+  createdBy: z.string().min(1, { message: "user is required" }),
   action: z
     .string()
     .min(1, { message: "action must be at least 1 character" })
     .max(155, { message: "action must be at most 155 characters" }),
+  actionMessage: z
+    .string()
+    .min(1, { message: "actionMessage must be at least 1 character" })
+    .max(255, { message: "actionMessage must be at most 255 characters" })
+    .optional(),
   entityType: z
     .string()
     .min(1, { message: "entityType must be at least 1 character" })

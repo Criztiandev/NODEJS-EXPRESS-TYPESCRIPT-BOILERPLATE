@@ -3,14 +3,13 @@ import { AuditDocument } from "../feature/audit/interface/audit.interface";
 
 const auditSchema = new Schema(
   {
-    user: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
     action: {
       type: String,
       required: true,
+    },
+    actionMessage: {
+      type: String,
+      required: false,
     },
     entityType: {
       type: String,
@@ -47,6 +46,11 @@ const auditSchema = new Schema(
       type: Date,
       required: false,
       default: null,
+    },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
   },
   {

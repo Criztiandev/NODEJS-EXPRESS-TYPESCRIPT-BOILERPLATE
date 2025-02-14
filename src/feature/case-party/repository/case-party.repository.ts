@@ -1,5 +1,5 @@
 import { CasepartyDocument } from "../interface/case-party.interface";
-import casepartyModel from "../../../model/caseparty.model";
+import casepartyModel from "../../../model/case-party.model";
 import { BaseRepository } from "../../../core/base/repository/base.repository";
 
 class CasepartyRepository extends BaseRepository<CasepartyDocument> {

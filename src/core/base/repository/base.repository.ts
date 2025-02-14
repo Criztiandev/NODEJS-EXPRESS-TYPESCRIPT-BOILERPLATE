@@ -1,4 +1,11 @@
-import { FilterQuery, Model, Document, ObjectId, SortOrder } from "mongoose";
+import {
+  FilterQuery,
+  Model,
+  Document,
+  ObjectId,
+  SortOrder,
+  PopulateOptions,
+} from "mongoose";
 
 export interface PaginationParams {
   page?: number;
@@ -26,6 +33,12 @@ interface FindByFilterOptions extends PaginationParams {
   sort?: Record<string, SortOrder>;
 }
 
+interface FindOptions {
+  select?: string | Record<string, number>;
+  sort?: Record<string, SortOrder>;
+  populate?: PopulateOptions | (string | PopulateOptions)[];
+}
+
 export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
   constructor(protected readonly model: Model<T>) {}
 
@@ -41,6 +54,19 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
       .findById(id)
       .lean()
       .select(select ?? "");
+  }
+
+  async findByFilters(
+    filters: FilterQuery<T>,
+    options: FindOptions = {}
+  ): Promise<T[]> {
+    const query = this.model.find(filters);
+
+    if (options.select) query.select(options.select);
+    if (options.populate) query.populate(options.populate);
+    if (options.sort) query.sort(options.sort);
+
+    return query.lean() as Promise<T[]>;
   }
 
   async findPaginated(

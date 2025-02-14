@@ -73,7 +73,7 @@ const caseSchema = new Schema(
     ],
     assignedMediator: {
       type: Schema.Types.ObjectId,
-      ref: "BarangayOfficial",
+      ref: "Official",
       required: false,
     },
     escalationReason: {

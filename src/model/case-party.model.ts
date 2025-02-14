@@ -35,4 +35,4 @@ const casepartySchema = new Schema(
   }
 );
 
-export default model<CasepartyDocument>("Caseparty", casepartySchema);
+export default model<CasepartyDocument>("CaseParty", casepartySchema);

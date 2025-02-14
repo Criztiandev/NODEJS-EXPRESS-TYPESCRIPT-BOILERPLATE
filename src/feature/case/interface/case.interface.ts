@@ -18,7 +18,7 @@ export interface Case {
   assignedMediator?: ObjectId | string;
   escalationReason?: string;
   escalationDate?: Date;
-  resolutionDate?: Date;
+  resolutionDate?: any;
   remarks?: string;
   createdAt: Date;
   updatedAt: Date;
