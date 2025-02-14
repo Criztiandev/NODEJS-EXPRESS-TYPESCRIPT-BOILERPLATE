@@ -54,5 +54,46 @@ Project Missout and Recommendation
 ```
 ```
 
-5. 
+5.  They cant alos handle array
 
+```
+
+result
+    complainants: {
+      type: Array,
+      required: false,
+    },
+
+Input
+     status: {
+    type: String,
+    enum: [
+      "filed",
+      "underReview",
+      "scheduledForHearing",
+      "inMediation",
+      "resolved",
+      "escalated",
+      "closed",
+    ],
+    default: "filed",
+  },
+
+  it ignore the enum as well
+
+```
+
+6. 
+
+```
+7. The Indentation is not correct its fucked
+8. it cant hanndle two words in the generated model
+    - case-party X
+    - caseParty
+9. No customization if the command or flags
+10. validation of mongoose is not working
+```
+  case: z.string().refine((id) => isValidObjectId(id), {
+    message: "Invalid case id",
+  }),
+```
