@@ -147,3 +147,10 @@ not the type is not working
 17. Zod validation is broken
 
 18. provide all overided base controller methods or even we dont need the base controller
+
+20. Controller cant handle protected routes
+
+21. Delete on the model is not working
+
+
+22. cant update or delete once the isDeleted is true

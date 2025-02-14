@@ -115,7 +115,7 @@ export function ProtectedController() {
       descriptor.value = async function (
         req: Request,
         res: Response,
-        next: NextFunction
+        next?: NextFunction
       ) {
         try {
           if (!isPublicRoute(constructor.prototype, propertyName)) {
@@ -126,7 +126,7 @@ export function ProtectedController() {
           if (error instanceof AuthenticationError) {
             return res.status(401).json({ message: error.message });
           }
-          next(error);
+          next?.(error);
         }
       };
 

@@ -36,7 +36,7 @@ interface FindByFilterOptions extends PaginationParams {
 interface FindOptions {
   select?: string | Record<string, number>;
   sort?: Record<string, SortOrder>;
-  populate?: PopulateOptions | (string | PopulateOptions)[];
+  populate?: string | string[] | Record<string, any>;
 }
 
 export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
@@ -63,7 +63,7 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
     const query = this.model.find(filters);
 
     if (options.select) query.select(options.select);
-    if (options.populate) query.populate(options.populate);
+    if (options.populate) query.populate(options.populate as PopulateOptions);
     if (options.sort) query.sort(options.sort);
 
     return query.lean() as Promise<T[]>;

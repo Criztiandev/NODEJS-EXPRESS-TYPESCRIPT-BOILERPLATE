@@ -23,7 +23,9 @@ const Routes = (app: Express) => {
   app.use("/api/user", userRoutes);
 
   app.use("/api/barangay", barangayRoutes);
+
   app.use("/api/officials", officialsRoutes);
+
   app.use("/api/case", caseRoutes);
   app.use("/api/caseparty", casepartyRoutes);
   app.use("/api/hearing", hearingRoutes);

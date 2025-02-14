@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const BarangaySchema = z.object({
+export const BarangayValidation = z.object({
   name: z
     .string()
     .min(1, { message: "name must be at least 1 character" })
@@ -16,10 +16,8 @@ export const BarangaySchema = z.object({
   contactInfo: z.object({
     phone: z
       .string()
-      .regex(/^\+?[1-9]\d{1,14}$/, {
-        message: "Invalid phone number format. Please use E.164 format",
-      })
-      .optional(),
+      .min(1, { message: "phone number must be at least 1 character" })
+      .max(155, { message: "phone number must be at most 155 characters" }),
     email: z
       .string()
       .email({ message: "Invalid email address" })
@@ -35,4 +33,4 @@ export const BarangaySchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export type BarangayInput = z.infer<typeof BarangaySchema>;
+export type BarangayInput = z.infer<typeof BarangayValidation>;

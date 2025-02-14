@@ -71,27 +71,22 @@ export class BaseService<T extends Document & SoftDeleteFields> {
   }
 
   async createItem(payload: Partial<T>): Promise<T> {
-    if (payload._id) {
-      const existing = await this.repository.findById(payload._id as ObjectId);
-      if (existing) {
-        throw new BadRequestError("Item already exists");
-      }
-    }
-
     const sanitizedPayload = this.sanitizePayload(payload);
     return this.repository.create(sanitizedPayload);
   }
 
-  async updateItem(id: ObjectId | string, payload: Partial<T>): Promise<T> {
-    const item = await this.repository.findById(id);
-    if (!item) {
-      throw new BadRequestError("Item not found");
+  async updateItem(
+    id: ObjectId | string,
+    payload: Partial<T>,
+    options?: {
+      select?: string;
     }
-
+  ): Promise<T> {
     const sanitizedPayload = this.sanitizePayload(payload);
     const updated = await this.repository.updateByFilters(
       { _id: id } as FilterQuery<T>,
-      sanitizedPayload
+      sanitizedPayload,
+      options?.select
     );
 
     if (!updated) {

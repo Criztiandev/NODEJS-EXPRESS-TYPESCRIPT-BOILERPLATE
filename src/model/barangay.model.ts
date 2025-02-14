@@ -19,14 +19,17 @@ const barangaySchema = new Schema(
       phone: {
         type: String,
         required: false,
+        unique: true,
       },
       email: {
         type: String,
         required: false,
+        unique: true,
       },
       emergencyContact: {
         type: String,
         required: false,
+        unique: true,
       },
     },
     isActive: {
@@ -50,15 +53,15 @@ const barangaySchema = new Schema(
 );
 
 // Middleware to exclude deleted documents by default
-barangaySchema.pre(
-  /^find/,
-  function (this: Query<any, BarangayDocument>, next) {
-    const conditions = this.getFilter();
-    if (!("isDeleted" in conditions)) {
-      this.where({ isDeleted: false });
-    }
-    next();
-  }
-);
+// barangaySchema.pre(
+//   /^find/,
+//   function (this: Query<any, BarangayDocument>, next) {
+//     const conditions = this.getFilter();
+//     if (!("isDeleted" in conditions)) {
+//       this.where({ isDeleted: false });
+//     }
+//     next();
+//   }
+// );
 
 export default model<BarangayDocument>("Barangay", barangaySchema);
