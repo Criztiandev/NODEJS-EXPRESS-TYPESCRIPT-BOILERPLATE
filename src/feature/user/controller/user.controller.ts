@@ -15,7 +15,10 @@ class UserController extends BaseController<UserDocument> {
   @AsyncHandler()
   async getAll(req: Request, res: Response, next: NextFunction) {
     const users = await this.service.getPaginatedUsers(req.query);
-    res.status(200).json(users);
+    res.status(200).json({
+      payload: users,
+      message: "Users retrieved successfully",
+    });
   }
 }
 

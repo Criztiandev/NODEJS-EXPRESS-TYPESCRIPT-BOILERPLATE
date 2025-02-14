@@ -1,11 +1,4 @@
-import {
-  FilterQuery,
-  Model,
-  ObjectId,
-  Schema,
-  SortOrder,
-  UpdateQuery,
-} from "mongoose";
+import { FilterQuery, Model, ObjectId, Schema, UpdateQuery } from "mongoose";
 import { NotFoundError } from "../../../utils/error.utils";
 import {
   BaseRepository,
@@ -25,7 +18,6 @@ export interface AccountDocument extends UserDocument, SoftDeleteFields {
 
 interface FindByFilterOptions extends PaginationParams {
   select?: string | Record<string, number>;
-  sort?: { [key: string]: SortOrder | { $meta: any } };
 }
 
 interface UpdateOptions {

@@ -3,6 +3,7 @@ import { FilterQuery, Model, Document, ObjectId, SortOrder } from "mongoose";
 export interface PaginationParams {
   page?: number;
   limit?: number;
+  sort?: Record<string, SortOrder>;
 }
 
 export interface PaginatedResponse<T> {
@@ -47,7 +48,7 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
     select?: string,
     pagination?: PaginationParams
   ): Promise<PaginatedResponse<T>> {
-    const { effectivePage, effectiveLimit, skip } =
+    const { effectivePage, effectiveLimit, skip, sort } =
       this.buildPaginationParams(pagination);
 
     const [docs, total] = await Promise.all([
@@ -55,6 +56,7 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
         .find(filters)
         .skip(skip)
         .limit(effectiveLimit)
+        .sort(sort)
         .lean()
         .select(select ?? ""),
       this.model.countDocuments(filters),
@@ -76,11 +78,29 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
     select?: string,
     pagination?: PaginationParams
   ): Promise<PaginatedResponse<T>> {
-    return this.findPaginated(
-      { ...filters, isDeleted: true },
-      select,
-      pagination
-    );
+    const { effectivePage, effectiveLimit, skip, sort } =
+      this.buildPaginationParams(pagination);
+
+    const [docs, total] = await Promise.all([
+      this.model
+        .find({ ...filters, isDeleted: true })
+        .skip(skip)
+        .limit(effectiveLimit)
+        .sort(sort)
+        .lean()
+        .select(select ?? ""),
+      this.model.countDocuments(filters),
+    ]);
+
+    return {
+      data: docs as any[] as T[],
+      pagination: {
+        total,
+        page: effectivePage,
+        limit: effectiveLimit,
+        pages: Math.ceil(total / effectiveLimit),
+      },
+    };
   }
 
   async create(data: Partial<T>): Promise<T> {
@@ -172,7 +192,8 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
     const effectivePage = Math.max(1, pagination?.page ?? 1);
     const effectiveLimit = Math.max(1, pagination?.limit ?? 10);
     const skip = (effectivePage - 1) * effectiveLimit;
+    const _sort = pagination?.sort ?? { createdAt: -1 };
 
-    return { effectivePage, effectiveLimit, skip };
+    return { effectivePage, effectiveLimit, skip, sort: _sort };
   }
 }

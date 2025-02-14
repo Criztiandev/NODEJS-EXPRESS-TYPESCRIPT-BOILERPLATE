@@ -17,8 +17,16 @@ class UserService extends BaseService<UserDocument> {
   public getPaginatedUsers(
     queryParams: QueryParams
   ): Promise<PaginatedResponse<UserDocument>> {
-    return super.getPaginatedItems(queryParams, {
-      select: "-password",
+    const selectedFields = [
+      "-password",
+      "-refreshToken",
+      "-role",
+      "-isDeleted",
+      "-deletedAt",
+    ];
+    const select = selectedFields.join(" ");
+    return super.getPaginatedItems(queryParams, selectedFields, {
+      select,
     });
   }
 
