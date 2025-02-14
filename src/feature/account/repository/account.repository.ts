@@ -1,18 +1,22 @@
 import { FilterQuery, Model, ObjectId, Schema, UpdateQuery } from "mongoose";
 import { NotFoundError } from "../../../utils/error.utils";
-import userModel, { UserDocument } from "../../../model/user.model";
+import {
+  BaseRepository,
+  PaginationParams,
+  SoftDeleteFields,
+} from "../../../core/base/repository/base.repository";
+import { UserDocument } from "../../user/interface/user.interface";
+import userModel from "../../../model/user.model";
 
-interface PaginationOptions {
-  page?: number;
-  limit?: number;
-  sort?: Record<string, 1 | -1>;
+export interface AccountDocument extends UserDocument, SoftDeleteFields {
+  email: string;
+  password: string;
+  refreshToken?: string;
+  isDeleted: boolean;
+  deletedAt?: Date;
 }
 
-interface FindAllOptions extends PaginationOptions {
-  query?: any;
-}
-
-interface FindByFilterOptions extends PaginationOptions {
+interface FindByFilterOptions extends PaginationParams {
   select?: string | Record<string, number>;
 }
 
@@ -21,174 +25,170 @@ interface UpdateOptions {
   runValidators?: boolean;
 }
 
-class AccountRepository {
-  constructor(private readonly userModel: Model<UserDocument>) {}
-
+export class AccountRepository extends BaseRepository<AccountDocument> {
   private static readonly DEFAULT_SELECT = "-password -refreshToken" as const;
-  private static readonly DEFAULT_PAGE = 1;
 
-  private getPaginationData(total: number, options?: PaginationOptions) {
-    return {
-      page: options?.page ?? AccountRepository.DEFAULT_PAGE,
-      totalPages: options?.limit ? Math.ceil(total / options.limit) : 1,
-      total,
-    };
+  constructor(model: Model<AccountDocument>) {
+    super(model);
   }
 
-  private applyPagination(query: any, options?: PaginationOptions) {
-    if (options?.sort) {
-      query.sort(options.sort);
-    }
-
-    if (options?.page && options?.limit) {
-      const skip = (options.page - 1) * options.limit;
-      query.skip(skip).limit(options.limit);
-    }
-
-    return query;
-  }
-
-  async findAll(options?: FindAllOptions) {
-    const query = options?.query || this.userModel.find();
-    query.select(AccountRepository.DEFAULT_SELECT);
-
-    this.applyPagination(query, options);
-
-    const [users, total] = await Promise.all([
-      query.lean(),
-      this.userModel.countDocuments(query.getQuery()),
-    ]);
-
-    return {
-      users,
-      ...this.getPaginationData(total, options),
-    };
-  }
-
-  async findAllDeletedAccount(options?: PaginationOptions) {
-    const query = await userModel.findAllDeletedAccounts();
-    return this.findAll({ ...options, query });
-  }
-
-  async findDeletedAccountById(id: Schema.Types.ObjectId | string) {
-    return await userModel.findDeletedAccountById(id);
-  }
-
-  async findDeletedAccountByEmail(email: string) {
-    console.log(email);
-    const user = await userModel
-      .findOne({
-        email: "criztiandev@gmail.com",
-        isDeleted: true,
-      })
-      .select("-password -refreshToken");
-
-    console.log(user);
-
-    return user;
-  }
-
-  async findByFilter(
-    filter: FilterQuery<UserDocument>,
-    options?: FindByFilterOptions
-  ) {
-    const select = options?.select || AccountRepository.DEFAULT_SELECT;
-    const query = this.userModel.find(filter).select(select);
-
-    this.applyPagination(query, options);
-
-    const [users, total] = await Promise.all([
-      query.lean(),
-      this.userModel.countDocuments(filter),
-    ]);
-
-    return {
-      users,
-      ...this.getPaginationData(total, options),
-    };
-  }
-
-  async findById(
-    id: Schema.Types.ObjectId | string,
-    select: string | Record<string, number> = AccountRepository.DEFAULT_SELECT
-  ) {
-    const user = await this.userModel.findById(id).select(select).lean();
-    if (!user) {
-      throw new NotFoundError(`User with id ${String(id)} not found`);
-    }
-    return user;
-  }
-
+  /**
+   * Find by email with default select
+   */
   async findByEmail(
     email: string,
     select: string = AccountRepository.DEFAULT_SELECT
   ) {
-    return await this.userModel.findOne({ email }).select(select);
+    return this.model
+      .findOne({ email, isDeleted: false })
+      .select(select)
+      .lean();
   }
 
-  async create(userData: Partial<UserDocument>) {
-    return this.userModel.create(userData);
+  /**
+   * Find deleted account by email
+   */
+  async findDeletedAccountByEmail(
+    email: string,
+    select: string = AccountRepository.DEFAULT_SELECT
+  ) {
+    return this.model.findOne({ email, isDeleted: true }).select(select).lean();
   }
 
-  async update(
+  /**
+   * Find all with advanced options
+   */
+  async findAllWithOptions(options?: FindByFilterOptions) {
+    const query = this.model.find({ isDeleted: false });
+    query.select(options?.select || AccountRepository.DEFAULT_SELECT);
+
+    if (options?.sort) {
+      query.sort(options.sort);
+    }
+
+    const { effectivePage, effectiveLimit, skip } =
+      this.buildPaginationParams(options);
+
+    query.skip(skip).limit(effectiveLimit);
+
+    const [users, total] = await Promise.all([
+      query.lean(),
+      this.model.countDocuments(query.getQuery()),
+    ]);
+
+    return {
+      data: users,
+      pagination: {
+        total,
+        page: effectivePage,
+        limit: effectiveLimit,
+        pages: Math.ceil(total / effectiveLimit),
+      },
+    };
+  }
+
+  /**
+   * Find by filter with pagination
+   */
+  async findByFilter(
+    filter: FilterQuery<AccountDocument>,
+    options?: FindByFilterOptions
+  ) {
+    const select = options?.select || AccountRepository.DEFAULT_SELECT;
+    const query = this.model
+      .find({ ...filter, isDeleted: false })
+      .select(select);
+
+    if (options?.sort) {
+      query.sort(options.sort);
+    }
+
+    const { effectivePage, effectiveLimit, skip } =
+      this.buildPaginationParams(options);
+
+    query.skip(skip).limit(effectiveLimit);
+
+    const [users, total] = await Promise.all([
+      query.lean(),
+      this.model.countDocuments({ ...filter, isDeleted: false }),
+    ]);
+
+    return {
+      data: users,
+      pagination: {
+        total,
+        page: effectivePage,
+        limit: effectiveLimit,
+        pages: Math.ceil(total / effectiveLimit),
+      },
+    };
+  }
+
+  /**
+   * Update with options
+   */
+  async updateWithOptions(
     id: Schema.Types.ObjectId | string,
-    updateData: UpdateQuery<UserDocument>,
+    updateData: UpdateQuery<AccountDocument>,
     options?: UpdateOptions
-  ): Promise<UserDocument> {
-    const user = await this.userModel
+  ): Promise<AccountDocument> {
+    const user = await this.model
       .findByIdAndUpdate(id, updateData, {
         new: true,
         runValidators: options?.runValidators ?? true,
       })
-      .select(options?.select ?? AccountRepository.DEFAULT_SELECT);
+      .select(options?.select ?? AccountRepository.DEFAULT_SELECT)
+      .lean();
 
     if (!user) {
-      throw new NotFoundError(`User with id ${String(id as string)} not found`);
+      throw new NotFoundError(`User with id ${String(id)} not found`);
     }
 
     return user;
   }
 
-  async softDelete(id: Schema.Types.ObjectId | string) {
-    return await userModel.findOneAndUpdate(
-      { _id: id },
-      {
-        isDeleted: true,
-        deletedAt: new Date(),
-        refreshToken: null,
-      },
-      { new: true }
-    );
-  }
-
-  async hardDelete(id: string) {
-    return await userModel.findOneAndDelete({ _id: id });
-  }
-
+  /**
+   * Restore account with specific fields
+   */
   async restoreAccount(id: ObjectId) {
-    return await userModel.findOneAndUpdate(
-      { _id: id, isDeleted: true },
-      {
-        $set: { isDeleted: false, deletedAt: null, refreshToken: null },
-      },
-      { new: true }
-    );
+    return this.model
+      .findOneAndUpdate(
+        { _id: id, isDeleted: true },
+        {
+          $set: {
+            isDeleted: false,
+            deletedAt: null,
+            refreshToken: null,
+          },
+        },
+        { new: true }
+      )
+      .lean();
   }
 
+  /**
+   * Bulk update with validation options
+   */
   async bulkUpdate(
-    filter: FilterQuery<UserDocument>,
-    update: UpdateQuery<UserDocument>,
+    filter: FilterQuery<AccountDocument>,
+    update: UpdateQuery<AccountDocument>,
     options?: { runValidators?: boolean }
   ) {
-    return this.userModel.updateMany(filter, update, {
+    return this.model.updateMany({ ...filter, isDeleted: false }, update, {
       runValidators: options?.runValidators ?? true,
     });
   }
 
-  async exists(filter: FilterQuery<UserDocument>): Promise<boolean> {
-    return (await this.userModel.exists(filter)) !== null;
+  /**
+   * Check if document exists
+   */
+  async exists(filter: FilterQuery<AccountDocument>): Promise<boolean> {
+    return (await this.model.exists({ ...filter, isDeleted: false })) !== null;
   }
 }
 
-// Export a singleton instance
-export default new AccountRepository(userModel);
+/**
+ * Initialize with Mongoose model
+ */
+const accountRepository = new AccountRepository(userModel);
+export default accountRepository;

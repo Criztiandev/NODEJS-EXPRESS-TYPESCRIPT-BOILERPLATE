@@ -1,71 +1,46 @@
-import mongoose, { ObjectId, Query } from "mongoose";
+import { Schema, model, Query } from "mongoose";
+import { Case, CaseDocument } from "../feature/case/interface/case.interface";
 
-export interface Case {
-  _id?: ObjectId | string;
-  title: string;
-  caseNumber: string;
-  type: string;
-  complinant: string;
-  defendant: string;
-  description: string;
-  status: string;
-  createdBy: string;
-  updatedBy: string;
-}
-
-const caseSchema = new mongoose.Schema(
+const caseSchema = new Schema(
   {
     title: {
       type: String,
-      required: true,
-    },
-    caseNumber: {
-      type: String,
-      required: true,
-    },
-    type: {
-      type: String,
-      required: true,
-    },
-    complinant: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    defendant: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      required: true
     },
     description: {
       type: String,
-      required: true,
+      required: true
     },
     status: {
       type: String,
-      required: true,
+      required: true
     },
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+    priority: {
+      type: String,
+      required: false
     },
-    updatedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+    startDate: {
+      type: Date,
+      required: true
+    },
+    isDeleted: { 
+      type: Boolean, 
+      required: true,
+      default: false 
+    },
+    deletedAt: { 
+      type: Date, 
       required: false,
-    },
-    isDeleted: {
-      type: Boolean,
-      default: false,
-    },
+      default: null 
+    }
   },
-  {
+  { 
     timestamps: true,
   }
 );
 
-caseSchema.pre(/^find/, function (this: Query<any, Document>, next) {
+// Middleware to exclude deleted documents by default
+caseSchema.pre(/^find/, function (this: Query<any, CaseDocument>, next) {
   const conditions = this.getFilter();
   if (!("isDeleted" in conditions)) {
     this.where({ isDeleted: false });
@@ -73,4 +48,4 @@ caseSchema.pre(/^find/, function (this: Query<any, Document>, next) {
   next();
 });
 
-export default mongoose.model("Case", caseSchema);
+export default model<CaseDocument>("Case", caseSchema);

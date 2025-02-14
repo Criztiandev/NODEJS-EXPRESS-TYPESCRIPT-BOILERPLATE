@@ -31,16 +31,6 @@ class AccountController {
   }
 
   @AsyncHandler()
-  @AllowedRoles(["admin"])
-  async getAllUsers(req: Request, res: Response, next: NextFunction) {
-    const users = await accountService.getAllUsers();
-    res.status(200).json({
-      payload: users,
-      message: "Users retrieved successfully",
-    });
-  }
-
-  @AsyncHandler()
   @AllowedRoles(["user", "admin"])
   @ZodValidation(UpdateAccountValidation)
   async updateProfile(req: Request, res: Response, next: NextFunction) {
@@ -69,26 +59,6 @@ class AccountController {
       res.clearCookie("connect.sid");
       res.status(200).json({
         message: "Logged out successfully",
-      });
-    });
-  }
-
-  @AsyncHandler()
-  @AllowedRoles(["user", "admin"])
-  async softDeleteAccount(req: Request, res: Response, next: NextFunction) {
-    const userId = req.session.user._id;
-
-    await accountService.softDeleteAccount(userId);
-
-    req.session.destroy((err) => {
-      if (err) {
-        throw new BadRequestError("Failed to delete account");
-      }
-
-      res.clearCookie("connect.sid");
-
-      res.status(200).json({
-        message: "Account deleted successfully",
       });
     });
   }

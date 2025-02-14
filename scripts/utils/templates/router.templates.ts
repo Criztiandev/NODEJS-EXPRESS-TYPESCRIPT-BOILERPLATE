@@ -1,28 +1,22 @@
 export const routerTemplate = (name: string) => {
-  const capitalizedName = name[0].toUpperCase() + name.slice(1);
   return `
-    import { Router } from "express";
-    import ${name}Controller from "../../feature/${name}/controller/${name}.controller";
+import { Router } from "express";
+import ${name}Controller from "../../feature/${name}/controller/${name}.controller";
+import { bindControllerMethods } from "../../utils/routes.util";
 
-    const router = Router();
+const router = Router();
+const controller = bindControllerMethods(${name}Controller);
 
-    router.get("/details/:id", ${name}Controller.get${capitalizedName}Details);
-    router.get(
-    "/soft-deleted/details/:id",
-    ${name}Controller.getSoftDeleted${capitalizedName}Details
-    );
+router.get("/details/:id", controller.getDetails);
+router.get("/soft-deleted/details/:id", controller.getSoftDeletedDetails);
+router.get("/all", controller.getAll);
+router.get("/soft-deleted/all", controller.getAllSoftDeleted);
+router.post("/create", controller.create);
+router.post("/restore/soft-deleted/:id", controller.restoreSoftDeleted);
+router.put("/details/:id", controller.update);
+router.delete("/details/:id", controller.softDelete);
+router.delete("/details/hard/:id", controller.hardDelete);
 
-    router.get("/all", ${name}Controller.getAll${capitalizedName}s);
-    router.get("/soft-deleted/all", ${name}Controller.getAllSoftDeleted${capitalizedName}s);
-
-    router.post("/create", ${name}Controller.create${capitalizedName});
-    router.post("/restore/soft-deleted/:id", ${name}Controller.restoreSoftDeleted${capitalizedName});
-
-    router.put("/details/:id", ${name}Controller.update${capitalizedName});
-
-    router.delete("/details/:id", ${name}Controller.softDelete${capitalizedName});
-    router.delete("/details/hard/:id", ${name}Controller.hardDelete${capitalizedName});
-
-    export default router;
+export default router;
   `;
 };

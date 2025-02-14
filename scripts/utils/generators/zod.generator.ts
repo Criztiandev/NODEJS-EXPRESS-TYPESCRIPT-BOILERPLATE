@@ -3,6 +3,7 @@ import { typeMapping } from "../helpers/typemapping.helper";
 import { Schema } from "../helpers/types.helper";
 
 // Common validation patterns
+// if there is optional field, it should be .optional() and at the end of the line
 const commonValidations = {
   email: (baseType: string) =>
     `${baseType}.email({ message: "Invalid email address" })` +

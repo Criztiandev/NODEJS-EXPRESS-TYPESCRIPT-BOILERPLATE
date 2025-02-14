@@ -1,7 +1,7 @@
-import { z } from "zod";
+import { UserValidation } from "../../user/validation/user.validation";
 
-const VerifyEmailValidation = z.object({
-  email: z.string().email(),
+const VerifyEmailValidation = UserValidation.pick({
+  email: true,
 });
 
 export default VerifyEmailValidation;

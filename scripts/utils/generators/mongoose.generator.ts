@@ -8,8 +8,8 @@ export const generateMongooseModel = (
 ): string => {
   const capitalizedName = capitalize(modelName);
 
-  return `import { Schema, model } from "mongoose";
-import { ${capitalizedName} } from "../feature/${modelName}/interface/${modelName}.interface";
+  return `import { Schema, model, Query } from "mongoose";
+import { ${capitalizedName}, ${capitalizedName}Document } from "../feature/${modelName}/interface/${modelName}.interface";
 
 const ${modelName}Schema = new Schema(
   {
@@ -21,11 +21,32 @@ ${Object.entries(schema)
       required: ${value.required}
     }`;
   })
-  .join(",\n")}
+  .join(",\n")},
+    isDeleted: { 
+      type: Boolean, 
+      required: true,
+      default: false 
+    },
+    deletedAt: { 
+      type: Date, 
+      required: false,
+      default: null 
+    }
   },
-  { timestamps: true }
+  { 
+    timestamps: true,
+  }
 );
 
-export default model<${capitalizedName}>("${capitalizedName}", ${modelName}Schema);
+// Middleware to exclude deleted documents by default
+${modelName}Schema.pre(/^find/, function (this: Query<any, ${capitalizedName}Document>, next) {
+  const conditions = this.getFilter();
+  if (!("isDeleted" in conditions)) {
+    this.where({ isDeleted: false });
+  }
+  next();
+});
+
+export default model<${capitalizedName}Document>("${capitalizedName}", ${modelName}Schema);
 `;
 };

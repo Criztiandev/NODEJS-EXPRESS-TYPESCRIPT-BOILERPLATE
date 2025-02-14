@@ -3,7 +3,7 @@ import { AsyncHandler } from "../../../utils/decorator.utils";
 import tokenUtils from "../../../utils/token.utils";
 import otpService from "../service/otp.service";
 import { ObjectId } from "mongoose";
-import emailService from "../../email/service/email.service";
+// import emailService from "../../email/service/email.service";
 
 class OTPController {
   @AsyncHandler()
@@ -17,7 +17,7 @@ class OTPController {
     );
 
     if (!isUsed && expiresAt > new Date()) {
-      await emailService.sendEmail(payload.email as string, otp);
+      // await emailService.sendEmail(payload.email as string, otp);
     }
 
     res.status(200).json({

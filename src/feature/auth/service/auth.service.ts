@@ -2,17 +2,15 @@ import AuthRepository from "../repository/auth.repository";
 import EncryptionUtils from "../../../utils/encryption.utils";
 import tokenUtils from "../../../utils/token.utils";
 import AccountService from "../../account/service/account.service";
-import { User } from "../../../types/models/user";
 import {
   BadRequestError,
   InputValidationError,
 } from "../../../utils/error.utils";
 import { LoginDTO } from "../interface/auth/login.interface";
 import { RegisterDTO } from "../interface/auth/register.interface";
-import { generateOTP } from "../../../utils/generate.utilts";
 import otpService from "./otp.service";
 import { ObjectId } from "mongoose";
-
+import { User } from "../../user/interface/user.interface";
 class AuthService {
   private readonly authRepository: typeof AuthRepository;
   private readonly accountService: typeof AccountService;
@@ -38,7 +36,7 @@ class AuthService {
     const hashedPassword = await EncryptionUtils.hashPassword(password);
 
     // Create user
-    const user = await this.accountService.createUser({
+    const user = await this.accountService.createItem({
       ...userData,
       email,
       password: hashedPassword,
@@ -74,9 +72,12 @@ class AuthService {
     const accessToken = tokenUtils.generateToken({ userId: user._id }, "1h");
     const refreshToken = tokenUtils.generateToken({ userId: user._id }, "7d");
 
-    const updatedCredentials = await this.accountService.updateUser(user._id, {
-      refreshToken,
-    });
+    const updatedCredentials = await this.accountService.updateUser(
+      user._id as ObjectId,
+      {
+        refreshToken,
+      }
+    );
 
     if (!updatedCredentials) {
       throw new BadRequestError("Failed to update user");

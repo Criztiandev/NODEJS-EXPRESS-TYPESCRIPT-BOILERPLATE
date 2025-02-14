@@ -6,7 +6,7 @@ import { serviceTemplate } from "../../utils/templates/service.template";
 import { controllerTemplate } from "../../utils/templates/controller.template";
 import { repositoryTemplate } from "../../utils/templates/repository.template";
 import { generateFiles as generateModel } from "../generate-model/builder";
-import { input } from "../generate-model/input";
+import ModelInput from "../generate-model/input";
 
 // Base directories from config
 const { featurePath, routesPath, rootRoutesPath } = scriptConfig;
@@ -145,7 +145,7 @@ async function main() {
 
   const moduleName = args[0].toLowerCase();
   await generateModule(moduleName);
-  await generateModel(moduleName, input);
+  await generateModel(moduleName, ModelInput);
 }
 
 main().catch(console.error);
