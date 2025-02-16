@@ -1,3 +1,4 @@
+import { ObjectId } from "mongoose";
 import {
   BaseRepository,
   PaginatedResponse,
@@ -6,6 +7,8 @@ import {
   BaseService,
   QueryParams,
 } from "../../../core/base/service/base.service";
+import EncryptionUtils from "../../../utils/encryption.utils";
+import { BadRequestError } from "../../../utils/error.utils";
 import { UserDocument } from "../interface/user.interface";
 import userRepository from "../repository/user.repository";
 
@@ -28,6 +31,20 @@ class UserService extends BaseService<UserDocument> {
     return super.getPaginatedItems(queryParams, selectedFields, {
       select,
     });
+  }
+
+  public async createUser(user: UserDocument): Promise<{ _id: ObjectId }> {
+    const hashedPassword = await EncryptionUtils.hashPassword(user.password);
+    user.password = hashedPassword;
+
+    const createdUser = await super.createItem(user);
+    if (!createdUser) {
+      throw new BadRequestError("Failed to create user");
+    }
+
+    return {
+      _id: createdUser._id as ObjectId,
+    };
   }
 
   public getUserById(id: string): Promise<UserDocument | null> {

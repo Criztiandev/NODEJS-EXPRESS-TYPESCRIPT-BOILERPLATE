@@ -154,3 +154,6 @@ not the type is not working
 
 
 22. cant update or delete once the isDeleted is true
+
+
+23. Remove the controller base template
