@@ -62,13 +62,13 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
 
   async findSoftDeletedById(
     id: ObjectId | string,
-    select: string = "_id"
+    select?: string
   ): Promise<T | null> {
     return this.model
       .findById(id)
       .where({ isDeleted: true })
       .lean()
-      .select(select);
+      .select(select ?? "-password");
   }
 
   async findByFilters(
@@ -143,13 +143,16 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
   }
 
   async softDeleteById(id: ObjectId): Promise<T | null> {
-    return this.model.findOneAndUpdate(
-      {
-        _id: id,
-        isDeleted: false,
-      },
-      { isDeleted: true, deletedAt: new Date() }
-    );
+    return this.model
+      .findOneAndUpdate(
+        {
+          _id: id,
+          isDeleted: false,
+        },
+        { isDeleted: true, deletedAt: new Date() }
+      )
+      .lean()
+      .select("_id");
   }
 
   async softDeleteByFilters(filters: FilterQuery<T>): Promise<any> {
@@ -167,7 +170,10 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
   }
 
   async hardDeleteById(id: ObjectId | string): Promise<T | null> {
-    return this.model.findByIdAndDelete(id);
+    return this.model
+      .findOneAndDelete({ _id: id, isDeleted: true })
+      .lean()
+      .select("_id");
   }
 
   async hardDeleteByFilters(filters: FilterQuery<T>): Promise<any> {

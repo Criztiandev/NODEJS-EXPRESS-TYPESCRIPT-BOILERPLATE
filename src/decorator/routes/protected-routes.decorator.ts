@@ -92,55 +92,75 @@ async function destroySession(req: Request): Promise<void> {
 }
 
 /**
- * Class decorator that protects routes by validating session and handling token refresh
- * @returns ClassDecorator
+ * Enhanced ProtectedController decorator that handles inherited methods
+ * This version automatically protects all methods, including inherited ones
  */
 export function ProtectedController() {
   return function (constructor: Function) {
-    const originalMethods = Object.getOwnPropertyDescriptors(
-      constructor.prototype
-    );
+    // Get all methods from the prototype chain
+    const prototypes = getAllPrototypes(constructor.prototype);
 
-    // Add session validation to each controller method
-    Object.entries(originalMethods).forEach(([propertyName, descriptor]) => {
-      if (
-        !(descriptor.value instanceof Function) ||
-        propertyName === "constructor"
-      ) {
-        return;
-      }
+    // Process each prototype in the chain
+    prototypes.forEach((proto) => {
+      const methods = Object.getOwnPropertyDescriptors(proto);
 
-      const originalMethod = descriptor.value;
-
-      descriptor.value = async function (
-        req: Request,
-        res: Response,
-        next?: NextFunction
-      ) {
-        try {
-          if (!isPublicRoute(constructor.prototype, propertyName)) {
-            await validateSession(req);
-          }
-          return await originalMethod.apply(this, [req, res, next]);
-        } catch (error) {
-          if (error instanceof AuthenticationError) {
-            return res.status(401).json({ message: error.message });
-          }
-          next?.(error);
+      // Add session validation to each method
+      Object.entries(methods).forEach(([propertyName, descriptor]) => {
+        // Skip if not a method or if constructor
+        if (
+          !(descriptor.value instanceof Function) ||
+          propertyName === "constructor"
+        ) {
+          return;
         }
-      };
 
-      Object.defineProperty(constructor.prototype, propertyName, descriptor);
+        const originalMethod = descriptor.value;
+
+        // Create new method with protection
+        descriptor.value = async function (
+          req: Request,
+          res: Response,
+          next?: NextFunction
+        ) {
+          try {
+            // Check if route is marked as public
+            if (!isPublicRoute(this, propertyName)) {
+              await validateSession(req);
+            }
+            return await originalMethod.apply(this, [req, res, next]);
+          } catch (error) {
+            if (error instanceof AuthenticationError) {
+              return res.status(401).json({ message: error.message });
+            }
+            next?.(error);
+          }
+        };
+
+        // Define the protected method on the current prototype
+        Object.defineProperty(proto, propertyName, descriptor);
+      });
     });
   };
 }
 
+/**
+ * Helper function to get all prototypes in the inheritance chain
+ */
+function getAllPrototypes(obj: any): any[] {
+  const prototypes: any[] = [];
+  let currentProto = obj;
+
+  while (currentProto && currentProto !== Object.prototype) {
+    prototypes.push(currentProto);
+    currentProto = Object.getPrototypeOf(currentProto);
+  }
+
+  return prototypes;
+}
+
+// The rest of your code remains the same:
 const publicRoutes = new WeakMap<object, Set<string | symbol>>();
 
-/**
- * Decorator to mark controller methods as public routes that bypass authentication
- * @returns MethodDecorator
- */
 export function PublicRoute() {
   return function (
     target: any,
@@ -157,12 +177,6 @@ export function PublicRoute() {
   };
 }
 
-/**
- * Helper function to check if a route is marked as public
- * @param target The class prototype
- * @param propertyKey The method name
- * @returns boolean
- */
 function isPublicRoute(target: any, propertyKey: string | symbol): boolean {
   const routes = publicRoutes.get(target);
   return routes ? routes.has(propertyKey) : false;

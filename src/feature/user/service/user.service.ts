@@ -30,6 +30,7 @@ class UserService extends BaseService<UserDocument> {
     return super.getPaginatedItems(queryParams, {
       select: selectedFields.join(" "),
       searchableFields: ["firstName", "lastName", "email"],
+      defaultFilters: { isDeleted: false },
     });
   }
 

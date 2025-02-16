@@ -79,7 +79,7 @@ export class BaseService<T extends Document & SoftDeleteFields> {
 
   async getSoftDeletedItem(id: ObjectId | string): Promise<T> {
     const item = await this.repository.findSoftDeletedById(id);
-    if (!item || !item.isDeleted) {
+    if (!item) {
       throw new BadRequestError(`${this.modelName} not found`);
     }
     return item;
@@ -131,7 +131,7 @@ export class BaseService<T extends Document & SoftDeleteFields> {
   }
 
   async softDeleteItem(id: ObjectId | string): Promise<T> {
-    const item = await this.repository.findSoftDeletedById(id);
+    const item = await this.repository.findById(id);
     if (!item) {
       throw new BadRequestError(`${this.modelName} not found`);
     }
@@ -164,7 +164,7 @@ export class BaseService<T extends Document & SoftDeleteFields> {
   }
 
   async hardDeleteItem(id: ObjectId | string): Promise<T | null> {
-    const item = await this.repository.findById(id);
+    const item = await this.repository.findSoftDeletedById(id);
     if (!item) {
       throw new BadRequestError(`${this.modelName} not found`);
     }
