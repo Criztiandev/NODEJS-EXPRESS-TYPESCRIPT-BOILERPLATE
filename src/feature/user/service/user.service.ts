@@ -27,9 +27,9 @@ class UserService extends BaseService<UserDocument> {
       "-isDeleted",
       "-deletedAt",
     ];
-    const select = selectedFields.join(" ");
-    return super.getPaginatedItems(queryParams, selectedFields, {
-      select,
+    return super.getPaginatedItems(queryParams, {
+      select: selectedFields.join(" "),
+      searchableFields: ["firstName", "lastName", "email"],
     });
   }
 

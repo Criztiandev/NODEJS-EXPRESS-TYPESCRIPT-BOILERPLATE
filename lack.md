@@ -157,3 +157,7 @@ not the type is not working
 
 
 23. Remove the controller base template
+
+24. Model name should include to the error to avoid deleted item not found
+
+25. Im keeping the controller base template for the future reference

@@ -17,22 +17,28 @@ export interface QueryParams extends PaginationParams {
 }
 
 export class BaseService<T extends Document & SoftDeleteFields> {
+  protected readonly modelName: string;
+
   constructor(protected readonly repository: BaseRepository<T>) {
     if (!repository) {
       throw new BadRequestError("Repository is required");
     }
+    this.modelName = repository.modelName;
   }
 
   async getPaginatedItems(
     queryParams: QueryParams,
-    searchableFields?: string[],
     options?: {
       select?: string;
+      searchableFields?: string[];
+      defaultFilters?: FilterQuery<T>;
     }
   ): Promise<PaginatedResponse<T>> {
     const { page, limit, search, sortBy, sortOrder, ...fieldQueries } =
       queryParams;
-    const filters = this.buildFilters(search, fieldQueries, searchableFields);
+
+    const filters = this.buildFilters(search, fieldQueries, options);
+
     const sort = this.buildSortCriteria(sortBy, sortOrder);
 
     return this.repository.findPaginated(filters, options?.select, {
@@ -43,14 +49,27 @@ export class BaseService<T extends Document & SoftDeleteFields> {
   }
 
   async getPaginatedSoftDeletedItems(
-    queryParams: QueryParams
+    queryParams: QueryParams,
+    options?: {
+      select?: string;
+      searchableFields?: string[];
+      defaultFilters?: FilterQuery<T>;
+    }
   ): Promise<PaginatedResponse<T>> {
-    const { page, limit, search } = queryParams;
-    const filters = search ? this.buildSearchFilter(search) : {};
+    const { page, limit, search, sortBy, sortOrder, ...fieldQueries } =
+      queryParams;
 
-    return this.repository.findPaginatedSoftDeleted(filters, undefined, {
+    const filters = this.buildFilters(search, fieldQueries, {
+      ...options,
+      defaultFilters: { ...options?.defaultFilters, isDeleted: true },
+    });
+
+    const sort = this.buildSortCriteria(sortBy, sortOrder);
+
+    return this.repository.findPaginated(filters, options?.select, {
       page,
       limit,
+      sort,
     });
   }
 
@@ -59,9 +78,9 @@ export class BaseService<T extends Document & SoftDeleteFields> {
   }
 
   async getSoftDeletedItem(id: ObjectId | string): Promise<T> {
-    const item = await this.repository.findById(id);
+    const item = await this.repository.findSoftDeletedById(id);
     if (!item || !item.isDeleted) {
-      throw new BadRequestError("Deleted item not found");
+      throw new BadRequestError(`${this.modelName} not found`);
     }
     return item;
   }
@@ -90,7 +109,7 @@ export class BaseService<T extends Document & SoftDeleteFields> {
     );
 
     if (!updated) {
-      throw new BadRequestError("Failed to update item");
+      throw new BadRequestError(`Failed to update ${this.modelName}`);
     }
 
     return updated;
@@ -112,14 +131,14 @@ export class BaseService<T extends Document & SoftDeleteFields> {
   }
 
   async softDeleteItem(id: ObjectId | string): Promise<T> {
-    const item = await this.repository.findById(id);
+    const item = await this.repository.findSoftDeletedById(id);
     if (!item) {
-      throw new BadRequestError("Item not found");
+      throw new BadRequestError(`${this.modelName} not found`);
     }
 
-    const deleted = await this.repository.softDeleteById(id);
+    const deleted = await this.repository.softDeleteById(item._id as ObjectId);
     if (!deleted) {
-      throw new BadRequestError("Failed to delete item");
+      throw new BadRequestError(`Failed to delete ${this.modelName}`);
     }
 
     return deleted;
@@ -136,17 +155,18 @@ export class BaseService<T extends Document & SoftDeleteFields> {
   }
 
   async restoreSoftDeletedItem(id: ObjectId | string): Promise<any> {
-    const item = await this.repository.findById(id);
-    if (!item || !item.isDeleted) {
-      throw new BadRequestError("Deleted item not found");
+    const item = await this.repository.findSoftDeletedById(id);
+
+    if (!item) {
+      throw new BadRequestError(`${this.modelName} not found`);
     }
-    return this.repository.restore({ _id: id } as FilterQuery<T>);
+    return this.repository.restoreById(id);
   }
 
   async hardDeleteItem(id: ObjectId | string): Promise<T | null> {
     const item = await this.repository.findById(id);
     if (!item) {
-      throw new BadRequestError("Item not found");
+      throw new BadRequestError(`${this.modelName} not found`);
     }
     return this.repository.hardDeleteById(id);
   }
@@ -154,9 +174,13 @@ export class BaseService<T extends Document & SoftDeleteFields> {
   private buildFilters(
     search?: string,
     fieldQueries: Record<string, any> = {},
-    searchableFields?: string[]
+    options?: {
+      searchableFields?: string[];
+      defaultFilters?: FilterQuery<T>;
+    }
   ): FilterQuery<T> {
-    const filters: FilterQuery<T> = { isDeleted: false };
+    const { searchableFields, defaultFilters } = options ?? {};
+    const filters: FilterQuery<T> = { ...defaultFilters };
 
     // Add search filter
     if (search && searchableFields?.length) {
@@ -181,16 +205,6 @@ export class BaseService<T extends Document & SoftDeleteFields> {
     });
 
     return filters;
-  }
-
-  private buildSearchFilter(search: string): FilterQuery<T> {
-    return {
-      isDeleted: true,
-      $or: [
-        { title: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-      ],
-    } as FilterQuery<T>;
   }
 
   private buildSortCriteria(

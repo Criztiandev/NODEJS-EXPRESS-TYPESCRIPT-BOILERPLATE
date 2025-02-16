@@ -39,8 +39,6 @@ export abstract class BaseController<T extends Document & SoftDeleteFields> {
     const queryParams = req.query;
     const items = await this.service.getPaginatedItems(queryParams);
 
-    console.log(items);
-
     res.status(200).json({
       payload: items,
       message: `${this.getResourceName()}s retrieved successfully`,

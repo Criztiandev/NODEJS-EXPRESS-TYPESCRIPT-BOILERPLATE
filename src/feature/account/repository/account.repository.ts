@@ -56,38 +56,6 @@ export class AccountRepository extends BaseRepository<AccountDocument> {
   }
 
   /**
-   * Find all with advanced options
-   */
-  async findAllWithOptions(options?: FindByFilterOptions) {
-    const query = this.model.find({ isDeleted: false });
-    query.select(options?.select || AccountRepository.DEFAULT_SELECT);
-
-    if (options?.sort) {
-      query.sort(options.sort);
-    }
-
-    const { effectivePage, effectiveLimit, skip } =
-      this.buildPaginationParams(options);
-
-    query.skip(skip).limit(effectiveLimit);
-
-    const [users, total] = await Promise.all([
-      query.lean(),
-      this.model.countDocuments(query.getQuery()),
-    ]);
-
-    return {
-      data: users,
-      pagination: {
-        total,
-        page: effectivePage,
-        limit: effectiveLimit,
-        pages: Math.ceil(total / effectiveLimit),
-      },
-    };
-  }
-
-  /**
    * Find by filter with pagination
    */
   async findByFilter(

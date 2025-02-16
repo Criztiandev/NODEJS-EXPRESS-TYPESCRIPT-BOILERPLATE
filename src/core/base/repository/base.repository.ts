@@ -40,7 +40,11 @@ interface FindOptions {
 }
 
 export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
-  constructor(protected readonly model: Model<T>) {}
+  public readonly modelName: string;
+
+  constructor(protected readonly model: Model<T>) {
+    this.modelName = model.modelName;
+  }
 
   async findAll(filters: FilterQuery<T>, select?: string): Promise<T[]> {
     return this.model
@@ -54,6 +58,17 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
       .findById(id)
       .lean()
       .select(select ?? "");
+  }
+
+  async findSoftDeletedById(
+    id: ObjectId | string,
+    select: string = "_id"
+  ): Promise<T | null> {
+    return this.model
+      .findById(id)
+      .where({ isDeleted: true })
+      .lean()
+      .select(select);
   }
 
   async findByFilters(
@@ -85,36 +100,7 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
         .sort(sort)
         .lean()
         .select(select ?? ""),
-      this.model.countDocuments(filters),
-    ]);
 
-    return {
-      data: docs as any[] as T[],
-      pagination: {
-        total,
-        page: effectivePage,
-        limit: effectiveLimit,
-        pages: Math.ceil(total / effectiveLimit),
-      },
-    };
-  }
-
-  async findPaginatedSoftDeleted(
-    filters: FilterQuery<T>,
-    select?: string,
-    pagination?: PaginationParams
-  ): Promise<PaginatedResponse<T>> {
-    const { effectivePage, effectiveLimit, skip, sort } =
-      this.buildPaginationParams(pagination);
-
-    const [docs, total] = await Promise.all([
-      this.model
-        .find({ ...filters, isDeleted: true })
-        .skip(skip)
-        .limit(effectiveLimit)
-        .sort(sort)
-        .lean()
-        .select(select ?? ""),
       this.model.countDocuments(filters),
     ]);
 
@@ -156,14 +142,13 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
     return this.model.updateMany({ _id: { $in: ids } }, data);
   }
 
-  async softDeleteById(id: ObjectId | string): Promise<T | null> {
-    return this.model.findByIdAndUpdate(
-      id,
+  async softDeleteById(id: ObjectId): Promise<T | null> {
+    return this.model.findOneAndUpdate(
       {
-        isDeleted: true,
-        deletedAt: new Date(),
-      } as Partial<T>,
-      { new: true }
+        _id: id,
+        isDeleted: false,
+      },
+      { isDeleted: true, deletedAt: new Date() }
     );
   }
 
@@ -193,7 +178,22 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
     return this.model.deleteMany({ _id: { $in: ids } });
   }
 
-  async restore(filters: FilterQuery<T>): Promise<any> {
+  async restoreById(id: ObjectId | string): Promise<any> {
+    return this.model.updateOne(
+      {
+        _id: id,
+        isDeleted: true,
+      },
+      {
+        $set: {
+          isDeleted: false,
+          deletedAt: null,
+        },
+      }
+    );
+  }
+
+  async restoreByFilters(filters: FilterQuery<T>): Promise<any> {
     return this.model.updateMany(filters, {
       $set: {
         isDeleted: false,
@@ -204,7 +204,7 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
 
   async batchRestore(ids: (ObjectId | string)[]): Promise<any> {
     return this.model.updateMany(
-      { _id: { $in: ids } },
+      { _id: { $in: ids }, isDeleted: true },
       {
         $set: {
           isDeleted: false,

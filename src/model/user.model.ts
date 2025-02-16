@@ -59,7 +59,7 @@ const userSchema = new Schema<UserDocument>(
     },
     isDeleted: {
       type: Boolean,
-      required: true,
+      required: false,
       default: false,
     },
     deletedAt: {
@@ -71,26 +71,30 @@ const userSchema = new Schema<UserDocument>(
   { timestamps: true }
 );
 
-// Pre-middleware with proper typing
 userSchema.pre(/^find/, function (this: Query<any, UserDocument>, next) {
-  // // Get the current operation options
-  // const options = this.getOptions();
-  // // Skip the middleware if we explicitly want to include deleted items
-  // if (options.includeSoftDeleted) {
-  //   return next();
-  // }
-  // // Only apply the filter if it's not already specified
-  // if (!("isDeleted" in this.getFilter())) {
-  //   this.where({ isDeleted: false });
-  // }
-  // next();
-  // // Dont get the admin and superadmin
-  // if (
-  //   this.getFilter().role !== "admin" &&
-  //   this.getFilter().role !== "superadmin"
-  // ) {
-  //   this.where({ role: { $nin: ["admin", "super-admin"] } });
-  // }
+  const conditions = this.getFilter();
+  if (!("isDeleted" in conditions)) {
+    this.where({ isDeleted: false });
+  }
+
+  // Dont get the admin and superadmin and even in the count of d
+  if (
+    this.getFilter().role !== "admin" &&
+    this.getFilter().role !== "superadmin"
+  ) {
+    this.where({ role: { $nin: ["admin", "super-admin"] } });
+  }
+
+  next();
 });
+
+// middleware to exclude the admin and superadmin in the count of documents and isDeleted is false
+userSchema.pre(
+  /^countDocuments/,
+  function (this: Query<any, UserDocument>, next) {
+    this.where({ role: { $nin: ["admin", "super-admin"] }, isDeleted: true });
+    next();
+  }
+);
 
 export default model<UserDocument>("User", userSchema);

@@ -46,9 +46,8 @@ class BarangayController extends BaseController<BarangayDocument> {
   @AsyncHandler()
   override async getAll(req: Request, res: Response, next: NextFunction) {
     const queryParams = req.query;
-    const items = await this.service.getPaginatedItems(
-      queryParams,
-      [
+    const items = await this.service.getPaginatedItems(queryParams, {
+      searchableFields: [
         "name",
         "municipality",
         "province",
@@ -56,10 +55,7 @@ class BarangayController extends BaseController<BarangayDocument> {
         "contactInfo.email",
         "contactInfo.emergencyContact",
       ],
-      {
-        select: "-isDeleted -deletedAt -createdAt -updatedAt",
-      }
-    );
+    });
 
     res.status(200).json({
       payload: items,
