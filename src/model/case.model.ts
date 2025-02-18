@@ -1,6 +1,25 @@
 import { Schema, model } from "mongoose";
 import { CaseDocument } from "../feature/case/interface/case.interface";
 
+const populateConfig = [
+  {
+    path: "complainants.residents",
+    select: "firstName lastName middleName fullAddress email phoneNumber",
+  },
+  {
+    path: "respondents.residents",
+    select: "firstName lastName middleName fullAddress email phoneNumber",
+  },
+  {
+    path: "witnesses.residents",
+    select: "firstName lastName middleName fullAddress email phoneNumber",
+  },
+  {
+    path: "mediationDetails.mediator",
+    select: "user position barangay",
+  },
+];
+
 // Define party sub-schema
 const partySchema = new Schema({
   residents: [
@@ -74,7 +93,7 @@ const caseSchema = new Schema(
     mediationDetails: {
       mediator: {
         type: Schema.Types.ObjectId,
-        ref: "officials",
+        ref: "Officials",
       },
       scheduledDate: Date,
       status: {
@@ -164,57 +183,11 @@ caseSchema.pre("save", function (next) {
   next();
 });
 
-// Methods
-caseSchema.methods = {
-  // Add a party to the case
-  async addParty(partyData: {
-    type: "complainants" | "respondents" | "witnesses";
-    userData: any;
-  }) {
-    this[partyData.type].push({
-      user: partyData.userData._id,
-      joinedDate: new Date(),
-      status: "active",
-    });
-
-    this.timeline.push({
-      action: "party_added",
-      date: new Date(),
-      actor: partyData.userData._id,
-      remarks: `New ${partyData.type.slice(0, -1)} added to case`,
-    });
-
-    return this.save();
-  },
-
-  // Update party status
-  async updatePartyStatus(
-    partyType: string,
-    userId: string,
-    newStatus: string
-  ) {
-    const party = this[partyType].find(
-      (p: any) => p.user.toString() === userId
-    );
-    if (party) {
-      party.status = newStatus;
-      if (newStatus === "withdrawn") {
-        party.withdrawalDate = new Date();
-      }
-      await this.save();
-    }
-  },
-
-  // Get all active parties
-  getActiveParties() {
-    const active = {
-      complainants: this.complainants.filter((p: any) => p.status === "active"),
-      respondents: this.respondents.filter((p: any) => p.status === "active"),
-      witnesses: this.witnesses.filter((p: any) => p.status === "active"),
-    };
-    return active;
-  },
-};
+// Single middleware for all query types
+caseSchema.pre(["find", "findOne"], function (next) {
+  this.populate(populateConfig);
+  next();
+});
 
 // Indexes for common queries
 caseSchema.index({ caseNumber: 1 });

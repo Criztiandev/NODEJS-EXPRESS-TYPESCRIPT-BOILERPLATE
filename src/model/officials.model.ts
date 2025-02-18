@@ -1,5 +1,16 @@
-import { Schema, model, Query } from "mongoose";
+import { Schema, model } from "mongoose";
 import { OfficialsDocument } from "../feature/officials/interface/officials.interface";
+
+const populateConfig = [
+  {
+    path: "user",
+    select: "firstName lastName middleName fullAddress email phoneNumber",
+  },
+  {
+    path: "barangay",
+    select: "name municipality province contactInfo",
+  },
+];
 
 const officialsSchema = new Schema(
   {
@@ -45,16 +56,9 @@ const officialsSchema = new Schema(
   }
 );
 
-// Middleware to exclude deleted documents by default
-officialsSchema.pre(
-  /^find/,
-  function (this: Query<any, OfficialsDocument>, next) {
-    const conditions = this.getFilter();
-    if (!("isDeleted" in conditions)) {
-      this.where({ isDeleted: false });
-    }
-    next();
-  }
-);
+officialsSchema.pre(["find", "findOne"], function (next) {
+  this.populate(populateConfig);
+  next();
+});
 
 export default model<OfficialsDocument>("Officials", officialsSchema);

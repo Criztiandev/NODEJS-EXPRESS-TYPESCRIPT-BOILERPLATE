@@ -49,7 +49,7 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
     filters: FilterQuery<T>,
     options: QueryOptions = {}
   ): Promise<T[]> {
-    return this.buildQuery(filters, options, true).lean() as Promise<T[]>;
+    return this.buildQuery(filters, options).lean() as Promise<T[]>;
   }
 
   /**
@@ -92,7 +92,7 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
     id: ObjectId | string,
     options: QueryOptions = {}
   ): Promise<T | null> {
-    return this.buildQuery({ _id: id }, options, true)
+    return this.buildQuery({ _id: id }, options)
       .findOne()
       .lean() as Promise<T | null>;
   }
@@ -107,7 +107,7 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
     filters: FilterQuery<T>,
     options: QueryOptions = {}
   ): Promise<T | null> {
-    return this.buildQuery(filters, options, true)
+    return this.buildQuery(filters, options)
       .findOne()
       .lean() as Promise<T | null>;
   }
@@ -127,6 +127,7 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
     const { effectivePage, effectiveLimit, skip, sort } =
       this.buildPaginationParams(pagination);
 
+    console.log(filters);
     const [docs, total] = await Promise.all([
       this.buildQuery(filters, { ...options, sort })
         .skip(skip)
@@ -325,15 +326,8 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
    * @param includeDeleted - Whether to include deleted items
    * @returns The query
    */
-  protected buildQuery(
-    baseQuery: FilterQuery<T>,
-    options: QueryOptions = {},
-    includeDeleted: boolean = false
-  ) {
-    const query = this.model.find({
-      ...baseQuery,
-      isDeleted: includeDeleted,
-    });
+  protected buildQuery(baseQuery: FilterQuery<T>, options: QueryOptions = {}) {
+    const query = this.model.find(baseQuery);
 
     if (options.select) query.select(options.select);
     if (options.populate) query.populate(options.populate as PopulateOptions);
