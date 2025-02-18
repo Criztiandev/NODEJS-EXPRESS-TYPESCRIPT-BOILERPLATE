@@ -168,3 +168,5 @@ not the type is not working
 
 
 27. postman collection is created when generating the module
+
+28. add this to the repository and service

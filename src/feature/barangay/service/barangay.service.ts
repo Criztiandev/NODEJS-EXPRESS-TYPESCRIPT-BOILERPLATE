@@ -13,7 +13,7 @@ class BarangayService extends BaseService<BarangayDocument> {
   }
 
   async createBarangay(userId: ObjectId, payload: BarangayInput) {
-    const existingBarangay = await this.getItemsByFilters({
+    const existingBarangay = await this.validateAlreadyExistsByFilters({
       $and: [
         { name: payload.name },
         { municipality: payload.municipality },
@@ -21,17 +21,13 @@ class BarangayService extends BaseService<BarangayDocument> {
       ],
     });
 
-    if (existingBarangay.length > 0) {
+    if (existingBarangay) {
       throw new BadRequestError("Barangay already exists");
     }
 
-    const newBarangay = await this.createItem(payload);
+    const newBarangay = await this.repository.create(payload);
 
-    if (!newBarangay) {
-      throw new BadRequestError("Failed to create barangay");
-    }
-
-    await auditService.createItem({
+    await auditService.createService({
       action: "create",
       entityType: "barangay",
       actionMessage: `Barangay: ${payload.name} created successfully`,
@@ -52,37 +48,37 @@ class BarangayService extends BaseService<BarangayDocument> {
     payload: BarangayInput
   ) {
     // check existing barangay
-    const existingBarangay = await this.getItem(barangayId);
-
-    if (!existingBarangay) {
-      throw new BadRequestError("Barangay not found");
-    }
+    await this.validateExists(barangayId, {
+      errorMessage: "Barangay not found",
+    });
 
     // check existing bararangay with same name, municipality, province and say it as taken
-    const existingBarangayWithSameName = await this.getItemsByFilters({
-      $and: [
-        { name: payload.name },
-        { municipality: payload.municipality },
-        { province: payload.province },
-        {},
-      ],
-    });
+    const existingBarangay = await this.validateExistsByFilters(
+      {
+        $and: [
+          { name: payload.name },
+          { municipality: payload.municipality },
+          { province: payload.province },
+        ],
+      },
+      {
+        errorMessage: "Barangay name, municipality, province is taken",
+      }
+    );
 
-    if (existingBarangayWithSameName.length > 0) {
-      throw new BadRequestError(
-        "Barangay name, municipality, province is taken"
-      );
-    }
-
-    const updatedBarangay = await this.updateItem(barangayId, payload, {
-      select: "-isDeleted -deletedAt -createdAt -updatedAt",
-    });
+    const updatedBarangay = await this.repository.update(
+      { _id: barangayId },
+      payload,
+      {
+        select: "-isDeleted -deletedAt -createdAt -updatedAt",
+      }
+    );
 
     if (!updatedBarangay) {
       throw new BadRequestError("Failed to update barangay");
     }
 
-    await auditService.createItem({
+    await auditService.createService({
       action: "update",
       entityType: "barangay",
       actionMessage: `Barangay: ${payload.name} updated successfully`,

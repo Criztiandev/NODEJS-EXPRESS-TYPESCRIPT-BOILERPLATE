@@ -2,11 +2,11 @@ import { FilterQuery, Model, ObjectId, Schema, UpdateQuery } from "mongoose";
 import { NotFoundError } from "../../../utils/error.utils";
 import {
   BaseRepository,
-  PaginationParams,
   SoftDeleteFields,
 } from "../../../core/base/repository/base.repository";
 import { UserDocument } from "../../user/interface/user.interface";
 import userModel from "../../../model/user.model";
+import { PaginationParams } from "../../../core/base/types/query.types";
 
 export interface AccountDocument extends UserDocument, SoftDeleteFields {
   email: string;

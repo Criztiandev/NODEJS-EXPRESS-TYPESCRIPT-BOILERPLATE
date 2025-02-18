@@ -13,16 +13,12 @@ export const OfficialsSchema = z.object({
     .string()
     .min(1, { message: "position must be at least 1 character" })
     .max(155, { message: "position must be at most 155 characters" }),
-  termStart: z
-    .date()
-    .refine((date) => !isNaN(new Date(date).getTime()), {
-      message: "Invalid date format",
-    }),
-  termEnd: z
-    .date()
-    .refine((date) => !isNaN(new Date(date).getTime()), {
-      message: "Invalid date format",
-    }),
+  termStart: z.date().refine((date) => !isNaN(new Date(date).getTime()), {
+    message: "Invalid date format",
+  }),
+  termEnd: z.date().refine((date) => !isNaN(new Date(date).getTime()), {
+    message: "Invalid date format",
+  }),
   isActive: z.boolean().optional(),
 });
 

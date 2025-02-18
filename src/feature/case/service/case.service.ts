@@ -26,7 +26,9 @@ class CaseService extends BaseService<CaseDocument> {
   ): Promise<CaseDocument> {
     const caseNumber = await this.generateCaseNumber();
 
-    const account = await accountService.getItem(userId, "_id");
+    const account = await accountService.validateExists(userId, {
+      select: "_id",
+    });
 
     if (!account) {
       throw new BadRequestError("User not found");
@@ -48,7 +50,7 @@ class CaseService extends BaseService<CaseDocument> {
       ? payload.complainants[0]
       : payload.complainants;
 
-    const notification = await notificationService.createItem({
+    const notification = await notificationService.createService({
       title: `Case ${newCase.caseNumber} has been created`,
       message: `Case ${newCase.caseNumber} has been created, please wait for the next step`,
       type: "case_filing",
@@ -62,7 +64,7 @@ class CaseService extends BaseService<CaseDocument> {
       throw new BadRequestError("Failed to create notification");
     }
 
-    await auditService.createItem({
+    await auditService.createService({
       action: "create",
       entityType: "Case",
       entityId: newCase?._id as ObjectId,
@@ -85,25 +87,29 @@ class CaseService extends BaseService<CaseDocument> {
     caseId: string,
     payload: Partial<CaseDocument>
   ): Promise<CaseDocument> {
-    const _case = await this.getItem(caseId);
+    const _case = await this.validateExists(caseId);
     if (!_case) {
       throw new BadRequestError("Case not found");
     }
 
-    const account = await accountService.getItem(userId, "_id");
+    const account = await accountService.validateExists(userId, {
+      select: "_id",
+    });
 
     if (!account) {
       throw new BadRequestError("User not found");
     }
 
-    const updatedCase = await this.updateItem(caseId, payload);
+    const updatedCase = await this.updateService(caseId, payload, {
+      select: "_id",
+    });
 
     if (!updatedCase) {
       throw new BadRequestError("Failed to update case");
     }
 
     // Notification that the case is updated
-    await auditService.createItem({
+    await auditService.createService({
       action: "update",
       entityType: "Case",
       entityId: _case._id as ObjectId,
@@ -125,19 +131,23 @@ class CaseService extends BaseService<CaseDocument> {
     caseId: string,
     payload: Partial<CaseDocument>
   ) {
-    const existingCase = await this.getItem(caseId);
+    const existingCase = await this.validateExists(caseId);
 
     if (!existingCase) {
       throw new BadRequestError("Case not found");
     }
 
-    const account = await accountService.getItem(userId, "_id");
+    const account = await accountService.validateExists(userId, {
+      select: "_id",
+    });
 
     if (!account) {
       throw new BadRequestError("User not found");
     }
 
-    const updatedCase = await this.updateItem(caseId, payload);
+    const updatedCase = await this.updateService(caseId, payload, {
+      select: "_id",
+    });
 
     if (!updatedCase) {
       throw new BadRequestError("Failed to escalate case");
@@ -148,7 +158,7 @@ class CaseService extends BaseService<CaseDocument> {
     // Send Notification to the involved parties
 
     // Create Audit
-    await auditService.createItem({
+    await auditService.createService({
       action: "escalate",
       entityType: "Case",
       entityId: existingCase._id as ObjectId,
@@ -164,36 +174,45 @@ class CaseService extends BaseService<CaseDocument> {
     caseId: string,
     payload: Partial<CaseDocument>
   ) {
-    const existingCase = await this.getItem(caseId);
+    const existingCase = await this.validateExists(caseId);
 
-    if (!existingCase) {
+    if (existingCase.isDeleted) {
       throw new BadRequestError("Case not found");
     }
 
-    const account = await accountService.getItem(userId, "_id");
+    if (existingCase.isResolved) {
+      throw new BadRequestError("Case already resolved");
+    }
+
+    const account = await accountService.validateExists(userId, {
+      select: "_id",
+    });
 
     if (!account) {
       throw new BadRequestError("User not found");
     }
 
     // Update the case with settlement details
-    const updatedCase = await this.updateItem(caseId, {
-      ...payload,
-      status: "settled",
-      isResolved: true,
-      resolutionDate: new Date(),
-    });
-
-    if (!updatedCase) {
-      throw new BadRequestError("Failed to resolve case with settlement");
-    }
+    const updatedCase = await this.updateService(
+      caseId,
+      {
+        ...payload,
+        status: "settled",
+        isResolved: true,
+        resolutionDate: new Date(),
+      },
+      {
+        select: "_id",
+        errorMessage: "Failed to resolve case with settlement",
+      }
+    );
 
     // Generate Settlement Document (KP FORM 11)
 
     // Send Notification to the involved parties
 
     // Create Audit
-    await auditService.createItem({
+    await auditService.createService({
       action: "resolve",
       entityType: "Case",
       entityId: existingCase._id as ObjectId,
@@ -241,7 +260,7 @@ class CaseService extends BaseService<CaseDocument> {
       throw new BadRequestError("Failed to escalate cases");
     }
 
-    await auditService.createItem({
+    await auditService.createService({
       action: "escalate",
       entityType: "Case",
       entityId: overDueCases[0]._id as ObjectId,

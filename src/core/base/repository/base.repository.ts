@@ -3,40 +3,20 @@ import {
   Model,
   Document,
   ObjectId,
-  SortOrder,
   PopulateOptions,
+  UpdateQuery,
 } from "mongoose";
-
-export interface PaginationParams {
-  page?: number;
-  limit?: number;
-  sort?: Record<string, SortOrder>;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    pages: number;
-  };
-}
+import {
+  PaginatedResponse,
+  PaginationOptions,
+  PaginationParams,
+  QueryOptions,
+  UpdateQueryOptions,
+} from "../types/query.types";
 
 export interface SoftDeleteFields {
   isDeleted: boolean;
   deletedAt?: Date;
-}
-
-interface FindByFilterOptions extends PaginationParams {
-  select?: string | Record<string, number>;
-  sort?: Record<string, SortOrder>;
-}
-
-interface FindOptions {
-  select?: string | Record<string, number>;
-  sort?: Record<string, SortOrder>;
-  populate?: string | string[] | Record<string, any>;
 }
 
 export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
@@ -46,66 +26,117 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
     this.modelName = model.modelName;
   }
 
-  async findAll(filters: FilterQuery<T>, select?: string): Promise<T[]> {
-    return this.model
-      .find(filters)
-      .lean()
-      .select(select ?? "");
+  /**
+   * Find all items
+   * @param filters - The filters to apply to the query
+   * @param options - The options to apply to the query
+   * @returns The items found
+   */
+  async findAll(
+    filters: FilterQuery<T>,
+    options: QueryOptions = {}
+  ): Promise<T[]> {
+    return this.buildQuery(filters, options).lean() as Promise<T[]>;
   }
 
-  async findById(id: ObjectId | string, select?: string): Promise<T | null> {
-    return this.model
-      .findById(id)
-      .lean()
-      .select(select ?? "");
+  /**
+   * Find all soft deleted items
+   * @param filters - The filters to apply to the query
+   * @param options - The options to apply to the query
+   * @returns The items found
+   */
+  async findAllSoftDeleted(
+    filters: FilterQuery<T>,
+    options: QueryOptions = {}
+  ): Promise<T[]> {
+    return this.buildQuery(filters, options, true).lean() as Promise<T[]>;
   }
 
-  async findSoftDeletedById(
+  /**
+   * Find an item by id
+   * @param id - The id of the item to find
+   * @param options - The options to apply to the query
+   * @returns The item found
+   */
+  async findById(
     id: ObjectId | string,
-    select?: string
+    options: QueryOptions = {}
   ): Promise<T | null> {
-    return this.model
-      .findById(id)
-      .where({ isDeleted: true })
-      .lean()
-      .select(select ?? "-password");
+    return this.buildQuery({ _id: id }, options)
+      .findOne()
+      .lean() as Promise<T | null>;
   }
 
+  /**
+   * Find an item by filters
+   * @param filters - The filters to apply to the query
+   * @param options - The options to apply to the query
+   * @returns The item found
+   */
   async findByFilters(
     filters: FilterQuery<T>,
-    options: FindOptions = {}
-  ): Promise<T[]> {
-    const query = this.model.find(filters);
-
-    if (options.select) query.select(options.select);
-    if (options.populate) query.populate(options.populate as PopulateOptions);
-    if (options.sort) query.sort(options.sort);
-
-    return query.lean() as Promise<T[]>;
+    options: QueryOptions = {}
+  ): Promise<T | null> {
+    return this.buildQuery(filters, options)
+      .findOne()
+      .lean() as Promise<T | null>;
   }
 
+  /**
+   * Find a soft deleted item by id
+   * @param id - The id of the item to find
+   * @param options - The options to apply to the query
+   * @returns The item found
+   */
+  async findSoftDeletedById(
+    id: ObjectId | string,
+    options: QueryOptions = {}
+  ): Promise<T | null> {
+    return this.buildQuery({ _id: id }, options, true)
+      .findOne()
+      .lean() as Promise<T | null>;
+  }
+
+  /**
+   * Find a soft deleted item by filters
+   * @param filters - The filters to apply to the query
+   * @param options - The options to apply to the query
+   * @returns The item found
+   */
+  async findSoftDeletedByFilters(
+    filters: FilterQuery<T>,
+    options: QueryOptions = {}
+  ): Promise<T | null> {
+    return this.buildQuery(filters, options, true)
+      .findOne()
+      .lean() as Promise<T | null>;
+  }
+
+  /**
+   * Find paginated items
+   * @param filters - The filters to apply to the query
+   * @param select - The fields to select
+   * @param pagination - The pagination options
+   * @returns The paginated items
+   */
   async findPaginated(
     filters: FilterQuery<T>,
-    select?: string,
-    pagination?: PaginationParams
+    pagination?: PaginationParams,
+    options?: PaginationOptions
   ): Promise<PaginatedResponse<T>> {
     const { effectivePage, effectiveLimit, skip, sort } =
       this.buildPaginationParams(pagination);
 
     const [docs, total] = await Promise.all([
-      this.model
-        .find(filters)
+      this.buildQuery(filters, { ...options, sort })
         .skip(skip)
         .limit(effectiveLimit)
-        .sort(sort)
-        .lean()
-        .select(select ?? ""),
-
+        .lean(),
       this.model.countDocuments(filters),
     ]);
 
     return {
-      data: docs as any[] as T[],
+      data: docs as T[],
       pagination: {
         total,
         page: effectivePage,
@@ -115,117 +146,249 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
     };
   }
 
+  /**
+   * Create an item
+   * @param data - The data to create the item with
+   * @returns The item created
+   */
   async create(data: Partial<T>): Promise<T> {
     return this.model.create(data);
   }
 
+  /**
+   * Create multiple items
+   * @param data - The data to create the items with
+   * @returns The items created
+   */
   async createMany(data: Partial<T>[]): Promise<T[]> {
     const docs = await this.model.insertMany(data);
-    return docs as unknown as T[];
+    return docs as any as T[];
   }
 
-  async updateByFilters(
+  /**
+   * Update an item
+   * @param filters - The filters to apply to the query
+   * @param data - The data to update the item with
+   * @param select - The fields to select
+   * @returns The item updated
+   */
+  async update(
     filters: FilterQuery<T>,
-    data: Partial<T>,
-    select?: string
+    data: UpdateQuery<T>,
+    options: UpdateQueryOptions
   ): Promise<T | null> {
     return this.model
       .findOneAndUpdate(filters, data, { new: true })
       .lean()
-      .select(select ?? "");
+      .select(options.select ?? "");
   }
 
+  /**
+   * Update multiple items
+   * @param filters - The filters to apply to the query
+   * @param update - The data to update the items with
+   * @returns The items updated
+   */
+  protected async batchUpdate(
+    filters: FilterQuery<T>,
+    update: UpdateQuery<T>,
+    options: UpdateQueryOptions = {}
+  ): Promise<any> {
+    return this.model.updateMany(filters, update).select(options.select ?? "");
+  }
+
+  /**
+   * Update multiple items by ids
+   * @param ids - The ids of the items to update
+   * @param data - The data to update the items with
+   * @returns The items updated
+   */
   async batchUpdateByIds(
     ids: (ObjectId | string)[],
-    data: Partial<T>
+    data: UpdateQuery<T>,
+    options: UpdateQueryOptions = {}
   ): Promise<any> {
-    return this.model.updateMany({ _id: { $in: ids } }, data);
+    return this.batchUpdate({ _id: { $in: ids } }, data, options);
   }
 
-  async softDeleteById(id: ObjectId): Promise<T | null> {
-    return this.model
-      .findOneAndUpdate(
-        {
-          _id: id,
-          isDeleted: false,
-        },
-        { isDeleted: true, deletedAt: new Date() }
-      )
-      .lean()
-      .select("_id");
+  /**
+   * Soft delete an item by id
+   * @param id - The id of the item to soft delete
+   * @returns The item deleted
+   */
+  async softDeleteById(
+    id: ObjectId,
+    options: UpdateQueryOptions = {}
+  ): Promise<T | null> {
+    return this.performSoftDelete({ _id: id }, options);
   }
 
+  /**
+   * Soft delete an item by filters
+   * @param filters - The filters to apply to the query
+   * @returns The items deleted
+   */
   async softDeleteByFilters(filters: FilterQuery<T>): Promise<any> {
-    return this.model.updateMany(filters, {
-      isDeleted: true,
-      deletedAt: new Date(),
-    } as Partial<T>);
+    return this.performSoftDelete(filters, { batch: true });
   }
 
+  /**
+   * Soft delete multiple items
+   * @param ids - The ids of the items to soft delete
+   * @returns The items deleted
+   */
   async batchSoftDelete(ids: (ObjectId | string)[]): Promise<any> {
-    return this.model.updateMany({ _id: { $in: ids } }, {
-      isDeleted: true,
-      deletedAt: new Date(),
-    } as Partial<T>);
+    return this.performSoftDelete({ _id: { $in: ids } }, { batch: true });
   }
 
+  /**
+   * Hard delete an item by id
+   * @param id - The id of the item to hard delete
+   * @returns The item deleted
+   */
+  protected async performHardDelete(
+    filters: FilterQuery<T>,
+    options: { batch: boolean } = { batch: false }
+  ): Promise<T | null | any> {
+    return options.batch
+      ? this.model.deleteMany(filters)
+      : this.model.findOneAndDelete(filters).lean().select({ select: "_id" });
+  }
+
+  /**
+   * Hard delete an item by id
+   * @param id - The id of the item to hard delete
+   * @returns The item deleted
+   */
   async hardDeleteById(id: ObjectId | string): Promise<T | null> {
-    return this.model
-      .findOneAndDelete({ _id: id, isDeleted: true })
-      .lean()
-      .select("_id");
+    return this.performHardDelete({ _id: id, isDeleted: true });
   }
 
+  /**
+   * Hard delete an item by filters
+   * @param filters - The filters to apply to the query
+   * @returns The items deleted
+   */
   async hardDeleteByFilters(filters: FilterQuery<T>): Promise<any> {
-    return this.model.deleteMany(filters);
+    return this.performHardDelete(filters, { batch: true });
   }
 
+  /**
+   * Hard delete multiple items
+   * @param ids - The ids of the items to hard delete
+   * @returns The items deleted
+   */
   async batchHardDelete(ids: (ObjectId | string)[]): Promise<any> {
-    return this.model.deleteMany({ _id: { $in: ids } });
-  }
-
-  async restoreById(id: ObjectId | string): Promise<any> {
-    return this.model.updateOne(
-      {
-        _id: id,
-        isDeleted: true,
-      },
-      {
-        $set: {
-          isDeleted: false,
-          deletedAt: null,
-        },
-      }
-    );
-  }
-
-  async restoreByFilters(filters: FilterQuery<T>): Promise<any> {
-    return this.model.updateMany(filters, {
-      $set: {
-        isDeleted: false,
-        deletedAt: null,
-      },
-    });
-  }
-
-  async batchRestore(ids: (ObjectId | string)[]): Promise<any> {
-    return this.model.updateMany(
+    return this.performHardDelete(
       { _id: { $in: ids }, isDeleted: true },
-      {
-        $set: {
-          isDeleted: false,
-          deletedAt: null,
-        },
-      }
+      { batch: true }
     );
   }
 
+  /**
+   * Restore an item by id
+   * @param id - The id of the item to restore
+   * @param options - The options to apply to the query
+   * @returns The item restored
+   */
+  async restoreById(
+    id: ObjectId | string,
+    options: UpdateQueryOptions
+  ): Promise<any> {
+    return this.performRestore({ _id: id }, options);
+  }
+
+  /**
+   * Restore an item by filters
+   * @param filters - The filters to apply to the query
+   * @returns The items restored
+   */
+  async restoreByFilters(filters: FilterQuery<T>): Promise<any> {
+    return this.performRestore(filters, { batch: true });
+  }
+
+  /**
+   * Restore multiple items
+   * @param ids - The ids of the items to restore
+   * @returns The items restored
+   */
+  async batchRestore(ids: (ObjectId | string)[]): Promise<any> {
+    return this.performRestore({ _id: { $in: ids } }, { batch: true });
+  }
+
+  // Helper Methods
+
+  /**
+   * Build a query
+   * @param baseQuery - The base query
+   * @param options - The options to apply to the query
+   * @param includeDeleted - Whether to include deleted items
+   * @returns The query
+   */
+  protected buildQuery(
+    baseQuery: FilterQuery<T>,
+    options: QueryOptions = {},
+    includeDeleted: boolean = false
+  ) {
+    const query = this.model.find({
+      ...baseQuery,
+      isDeleted: includeDeleted,
+    });
+
+    if (options.select) query.select(options.select);
+    if (options.populate) query.populate(options.populate as PopulateOptions);
+    if (options.sort) query.sort(options.sort);
+
+    return query;
+  }
+
+  /**
+   * Build pagination parameters
+   * @param pagination - The pagination options
+   * @returns The pagination parameters
+   */
   protected buildPaginationParams(pagination?: PaginationParams) {
     const effectivePage = Math.max(1, pagination?.page ?? 1);
     const effectiveLimit = Math.max(1, pagination?.limit ?? 10);
     const skip = (effectivePage - 1) * effectiveLimit;
-    const _sort = pagination?.sort ?? { createdAt: -1 };
+    const sort = pagination?.sort ?? { createdAt: -1 };
 
-    return { effectivePage, effectiveLimit, skip, sort: _sort };
+    return { effectivePage, effectiveLimit, skip, sort };
+  }
+
+  /**
+   * Perform a soft delete
+   * @param filters - The filters to apply to the query
+   * @param options - The options to apply to the query
+   * @returns The item deleted
+   */
+  protected async performSoftDelete(
+    filters: FilterQuery<T>,
+    options: UpdateQueryOptions = {}
+  ): Promise<T | null | any> {
+    const update = {
+      isDeleted: true,
+      deletedAt: new Date(),
+    } as UpdateQuery<T>;
+
+    return options.batch
+      ? this.batchUpdate(filters, update, {
+          select: options.select ?? "",
+        })
+      : this.update({ ...filters, isDeleted: false }, update, options);
+  }
+
+  protected async performRestore(
+    filters: FilterQuery<T>,
+    options: UpdateQueryOptions = {}
+  ): Promise<any> {
+    const update = {
+      $set: {
+        isDeleted: false,
+        deletedAt: null,
+      },
+    };
+
+    return this.batchUpdate({ ...filters, isDeleted: true }, update, options);
   }
 }

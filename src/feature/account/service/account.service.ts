@@ -44,10 +44,10 @@ export class AccountService extends BaseService<AccountDocument> {
    * Get user profile utilizing repository's findById with select
    */
   async getUserProfile(id: string) {
-    const user = await this.accountRepository.findById(
-      id,
-      "-password -refreshToken -isDeleted -deletedAt -role -updatedAt -createdAt -__v"
-    );
+    const user = await this.accountRepository.findById(id, {
+      select:
+        "-password -refreshToken -isDeleted -deletedAt -role -updatedAt -createdAt -__v",
+    });
     if (!user) {
       throw new BadRequestError("User not found");
     }
@@ -62,7 +62,9 @@ export class AccountService extends BaseService<AccountDocument> {
       throw new BadRequestError("User ID is required");
     }
 
-    const user = await this.accountRepository.findById(id, "_id role");
+    const user = await this.accountRepository.findById(id, {
+      select: "_id role",
+    });
 
     if (!user) {
       throw new BadRequestError("User not found");
@@ -105,7 +107,9 @@ export class AccountService extends BaseService<AccountDocument> {
    * Reset password with validation and hashing
    */
   async resetPassword(UID: ObjectId, newPassword: string) {
-    const user = await this.accountRepository.findById(UID, "password");
+    const user = await this.accountRepository.findById(UID, {
+      select: "password",
+    });
 
     if (!user) {
       throw new BadRequestError("User not found");

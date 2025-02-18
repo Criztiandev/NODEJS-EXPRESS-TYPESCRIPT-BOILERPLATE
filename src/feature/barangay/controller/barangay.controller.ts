@@ -5,7 +5,6 @@ import { BarangayDocument } from "../interface/barangay.interface";
 import BarangayService from "../service/barangay.service";
 import { BarangayValidation } from "../validation/barangay.validation";
 import { ProtectedController } from "../../../decorator/routes/protected-routes.decorator";
-import { BadRequestError } from "../../../utils/error.utils";
 
 @ProtectedController()
 class BarangayController extends BaseController<BarangayDocument> {
@@ -46,7 +45,7 @@ class BarangayController extends BaseController<BarangayDocument> {
   @AsyncHandler()
   override async getAll(req: Request, res: Response, next: NextFunction) {
     const queryParams = req.query;
-    const items = await this.service.getPaginatedItems(queryParams, {
+    const items = await this.service.getPaginatedService(queryParams, {
       searchableFields: [
         "name",
         "municipality",
@@ -70,10 +69,9 @@ class BarangayController extends BaseController<BarangayDocument> {
     next: NextFunction
   ): Promise<void> {
     const { id } = req.params;
-    const item = await this.service.getItem(
-      id,
-      "-isDeleted -deletedAt -updatedAt"
-    );
+    const item = await this.service.getByIdService(id, {
+      select: "-isDeleted -deletedAt -updatedAt",
+    });
 
     res.status(200).json({
       payload: item,

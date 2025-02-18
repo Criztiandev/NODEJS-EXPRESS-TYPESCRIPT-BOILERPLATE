@@ -36,7 +36,7 @@ class AuthService {
     const hashedPassword = await EncryptionUtils.hashPassword(password);
 
     // Create user
-    const user = await this.accountService.createItem({
+    const user = await this.accountService.createService({
       ...userData,
       email,
       password: hashedPassword,

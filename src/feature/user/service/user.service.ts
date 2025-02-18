@@ -1,18 +1,16 @@
 import { ObjectId } from "mongoose";
-import {
-  BaseRepository,
-  PaginatedResponse,
-} from "../../../core/base/repository/base.repository";
-import {
-  BaseService,
-  QueryParams,
-} from "../../../core/base/service/base.service";
+import { BaseRepository } from "../../../core/base/repository/base.repository";
+import { BaseService } from "../../../core/base/service/base.service";
 import EncryptionUtils from "../../../utils/encryption.utils";
 import { BadRequestError } from "../../../utils/error.utils";
 import { UserDocument } from "../interface/user.interface";
 import userRepository from "../repository/user.repository";
 import barangayService from "../../barangay/service/barangay.service";
 import { UserInput } from "../validation/user.validation";
+import {
+  PaginatedResponse,
+  PaginationQueryParams,
+} from "../../../core/base/types/query.types";
 
 class UserService extends BaseService<UserDocument> {
   constructor(userRepository: BaseRepository<UserDocument>) {
@@ -20,7 +18,7 @@ class UserService extends BaseService<UserDocument> {
   }
 
   public getPaginatedUsers(
-    queryParams: QueryParams
+    queryParams: PaginationQueryParams
   ): Promise<PaginatedResponse<UserDocument>> {
     const selectedFields = [
       "-password",
@@ -29,7 +27,7 @@ class UserService extends BaseService<UserDocument> {
       "-isDeleted",
       "-deletedAt",
     ];
-    return super.getPaginatedItems(queryParams, {
+    return super.getPaginatedService(queryParams, {
       select: selectedFields.join(" "),
       searchableFields: ["firstName", "lastName", "email"],
       defaultFilters: { isDeleted: false },
@@ -40,13 +38,11 @@ class UserService extends BaseService<UserDocument> {
     const hashedPassword = await EncryptionUtils.hashPassword(user.password);
     user.password = hashedPassword;
 
-    const barangay = await barangayService.getItem(user.fullAddress.barangay);
+    await barangayService.validateExists(user.fullAddress.barangay, {
+      errorMessage: "Barangay does not exist",
+    });
 
-    if (!barangay) {
-      throw new BadRequestError("Barangay does not exist");
-    }
-
-    const createdUser = await super.createItem(user);
+    const createdUser = await super.createService(user);
     if (!createdUser) {
       throw new BadRequestError("Failed to create user");
     }
@@ -57,7 +53,9 @@ class UserService extends BaseService<UserDocument> {
   }
 
   public getUserById(id: string): Promise<UserDocument | null> {
-    return super.getItem(id, "-password");
+    return super.getByIdService(id, {
+      select: "-password",
+    });
   }
 }
 
