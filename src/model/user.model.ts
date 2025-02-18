@@ -18,10 +18,12 @@ const userSchema = new Schema<UserDocument>(
 
     fullAddress: {
       street: String,
-      barangay: String,
-      city: String,
-      province: String,
-      postalCode: String,
+      block: String,
+      barangay: {
+        type: Schema.Types.ObjectId,
+        ref: "Barangay",
+        required: true,
+      },
     },
 
     email: {

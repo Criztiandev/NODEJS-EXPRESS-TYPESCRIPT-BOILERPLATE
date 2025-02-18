@@ -1,3 +1,4 @@
+import { isValidObjectId } from "mongoose";
 import { z } from "zod";
 
 export const UserValidation = z.object({
@@ -19,23 +20,16 @@ export const UserValidation = z.object({
     street: z
       .string()
       .min(1, { message: "street must be at least 1 character" })
-      .max(155, { message: "street must be at most 155 characters" }),
-    barangay: z
+      .max(155, { message: "street must be at most 155 characters" })
+      .optional(),
+    block: z
       .string()
-      .min(1, { message: "barangay must be at least 1 character" })
-      .max(155, { message: "barangay must be at most 155 characters" }),
-    city: z
-      .string()
-      .min(1, { message: "city must be at least 1 character" })
-      .max(155, { message: "city must be at most 155 characters" }),
-    province: z
-      .string()
-      .min(1, { message: "province must be at least 1 character" })
-      .max(155, { message: "province must be at most 155 characters" }),
-    postalCode: z
-      .string()
-      .min(1, { message: "postalCode must be at least 1 character" })
-      .max(155, { message: "postalCode must be at most 155 characters" }),
+      .min(1, { message: "block must be at least 1 character" })
+      .max(155, { message: "block must be at most 155 characters" })
+      .optional(),
+    barangay: z.string().refine(isValidObjectId, {
+      message: "Invalid barangay Details",
+    }),
   }),
 
   email: z
@@ -46,7 +40,8 @@ export const UserValidation = z.object({
   phoneNumber: z
     .string()
     .min(10, { message: "Phone number must be at least 10 characters" })
-    .max(15, { message: "Phone number must be at most 11 characters" }),
+    .max(11, { message: "Phone number must be at most 11 characters" })
+    .startsWith("09", { message: "Phone number must start with 09" }),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")

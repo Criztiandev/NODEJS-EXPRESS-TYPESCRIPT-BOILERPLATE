@@ -26,6 +26,10 @@ export class BaseService<T extends Document & SoftDeleteFields> {
     this.modelName = repository.modelName;
   }
 
+  async getAllItems(filters: FilterQuery<T>, select?: string): Promise<T[]> {
+    return this.repository.findAll(filters, select);
+  }
+
   async getPaginatedItems(
     queryParams: QueryParams,
     options?: {

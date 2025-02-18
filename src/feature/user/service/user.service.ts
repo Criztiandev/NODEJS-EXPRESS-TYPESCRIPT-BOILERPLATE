@@ -11,6 +11,8 @@ import EncryptionUtils from "../../../utils/encryption.utils";
 import { BadRequestError } from "../../../utils/error.utils";
 import { UserDocument } from "../interface/user.interface";
 import userRepository from "../repository/user.repository";
+import barangayService from "../../barangay/service/barangay.service";
+import { UserInput } from "../validation/user.validation";
 
 class UserService extends BaseService<UserDocument> {
   constructor(userRepository: BaseRepository<UserDocument>) {
@@ -37,6 +39,12 @@ class UserService extends BaseService<UserDocument> {
   public async createUser(user: UserDocument): Promise<{ _id: ObjectId }> {
     const hashedPassword = await EncryptionUtils.hashPassword(user.password);
     user.password = hashedPassword;
+
+    const barangay = await barangayService.getItem(user.fullAddress.barangay);
+
+    if (!barangay) {
+      throw new BadRequestError("Barangay does not exist");
+    }
 
     const createdUser = await super.createItem(user);
     if (!createdUser) {

@@ -12,10 +12,8 @@ export interface User {
   password: string;
   fullAddress: {
     street: string;
-    barangay: string;
-    city: string;
-    province: string;
-    postalCode: string;
+    block: string;
+    barangay: ObjectId;
   };
   type: "resident" | "barangayOfficial" | "dilgOfficial" | "admin";
   role?: "user" | "admin" | "superadmin";

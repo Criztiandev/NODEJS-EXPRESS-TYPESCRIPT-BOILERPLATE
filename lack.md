@@ -163,3 +163,8 @@ not the type is not working
 25. Im keeping the controller base template for the future reference
 
 25. protected rotue should be protected when extend to the controller
+
+26. in the service there is no getAllItems
+
+
+27. postman collection is created when generating the module
