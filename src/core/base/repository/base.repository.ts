@@ -92,7 +92,7 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
     id: ObjectId | string,
     options: QueryOptions = {}
   ): Promise<T | null> {
-    return this.buildQuery({ _id: id }, options)
+    return this.buildQuery({ _id: id, isDeleted: true }, options)
       .findOne()
       .lean() as Promise<T | null>;
   }
@@ -107,7 +107,7 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
     filters: FilterQuery<T>,
     options: QueryOptions = {}
   ): Promise<T | null> {
-    return this.buildQuery(filters, options)
+    return this.buildQuery({ ...filters, isDeleted: true }, options)
       .findOne()
       .lean() as Promise<T | null>;
   }

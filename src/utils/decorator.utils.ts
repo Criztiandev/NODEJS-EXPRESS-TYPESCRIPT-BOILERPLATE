@@ -1,7 +1,11 @@
 import { NextFunction, Response } from "express";
 import expressAsyncHandler from "express-async-handler";
 import { SessionRequest } from "../types/express";
-import { ForbiddenError, UnauthorizedError } from "./error.utils";
+import {
+  BadRequestError,
+  ForbiddenError,
+  UnauthorizedError,
+} from "./error.utils";
 import { ZodError, ZodObject } from "zod";
 
 export function AllowedRoles(roles: string[]) {
@@ -69,10 +73,34 @@ export function ZodValidation(
     descriptor.value = function (req: any, res: Response, next: NextFunction) {
       const validateAndExecute = async () => {
         try {
+          // if req.body is empty, return the original method
+          if (
+            req.body === undefined ||
+            req.body === null ||
+            Object.keys(req.body).length === 0
+          ) {
+            // throw the validation error
+            req.body = await schema.parseAsync(req.body);
+          }
+
           // Use partial schema for updates, full schema for creation
           const validationSchema = options.isPartial
             ? schema.partial()
             : schema;
+
+          // when partials is true. we need to check if the provided field is exists in the schema
+          if (options.isPartial) {
+            const providedFields = Object.keys(req.body);
+            const schemaFields = validationSchema.shape;
+            const missingFields = providedFields.filter(
+              (field) => !(field in schemaFields)
+            );
+            if (missingFields.length > 0) {
+              throw new BadRequestError(
+                `Field doesn't exists: ${missingFields.join(", ")}`
+              );
+            }
+          }
 
           // Validate the request body
           req.body = await validationSchema.parseAsync(req.body);

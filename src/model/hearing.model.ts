@@ -1,6 +1,13 @@
 import { Schema, model, Query } from "mongoose";
 import { HearingDocument } from "../feature/hearing/interface/hearing.interface";
 
+const populateConfig = [
+  {
+    path: "case",
+    select: "-isDeleted -deletedAt",
+  },
+];
+
 const hearingSchema = new Schema(
   {
     case: {
@@ -26,20 +33,6 @@ const hearingSchema = new Schema(
       type: String,
       required: true,
     },
-    attendees: [
-      {
-        party: {
-          type: Schema.Types.ObjectId,
-          ref: "CaseParty",
-        },
-        attended: Boolean,
-        remarks: String,
-      },
-    ],
-    mediator: {
-      type: Schema.Types.ObjectId,
-      ref: "Officials",
-    },
     notes: {
       type: String,
       required: false,
@@ -64,12 +57,8 @@ const hearingSchema = new Schema(
   }
 );
 
-// Middleware to exclude deleted documents by default
-hearingSchema.pre(/^find/, function (this: Query<any, HearingDocument>, next) {
-  const conditions = this.getFilter();
-  if (!("isDeleted" in conditions)) {
-    this.where({ isDeleted: false });
-  }
+hearingSchema.pre(["find", "findOne"], function (next) {
+  this.populate(populateConfig);
   next();
 });
 

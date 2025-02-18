@@ -42,7 +42,9 @@ export abstract class BaseController<T extends Document & SoftDeleteFields> {
   @AsyncHandler()
   async getAll(req: Request, res: Response, next: NextFunction) {
     const queryParams = req.query;
-    const items = await this.service.getPaginatedService(queryParams);
+    const items = await this.service.getPaginatedService(queryParams, {
+      defaultFilters: { isDeleted: false },
+    });
 
     res.status(200).json({
       payload: items,
