@@ -6,6 +6,8 @@ import { CaseDocument } from "../interface/case.interface";
 import CaseRepository from "../repository/case.repository";
 import auditService from "../../audit/service/audit.service";
 import accountService from "../../account/service/account.service";
+import userService from "../../user/service/user.service";
+import userRepository from "../../user/repository/user.repository";
 
 class CaseService extends BaseService<CaseDocument> {
   protected readonly repository: typeof CaseRepository;
@@ -20,57 +22,74 @@ class CaseService extends BaseService<CaseDocument> {
    * @param payload - The case data to create
    * @returns The created case document
    */
-  async createCase(
-    userId: ObjectId,
-    payload: Partial<CaseDocument>
-  ): Promise<CaseDocument> {
+
+  async createCase(payload: Partial<CaseDocument>): Promise<CaseDocument> {
     const caseNumber = await this.generateCaseNumber();
 
-    const account = await accountService.validateExists(userId, {
-      select: "_id",
+    // check if the complainants is exist
+    const existingUsers = await userRepository.findAll({
+      _id: { $in: payload.complainants?.residents },
     });
 
-    if (!account) {
-      throw new BadRequestError("User not found");
+    if (existingUsers.length !== payload.complainants?.residents.length) {
+      throw new BadRequestError("Complainants not found");
     }
 
-    const newCase = await this.repository.create({
+    // check if the respondents is exist
+    const existingRespondents = await userRepository.findAll({
+      _id: { $in: payload.respondents?.residents },
+    });
+
+    if (existingRespondents.length !== payload.respondents?.residents.length) {
+      throw new BadRequestError("Respondents not found");
+    }
+
+    // check if the witnesses is exist
+    if (payload.witnesses) {
+      const existingWitnesses = await userRepository.findAll({
+        _id: { $in: payload.witnesses?.residents },
+      });
+
+      if (existingWitnesses.length !== payload.witnesses?.residents.length) {
+        throw new BadRequestError("Witnesses not found");
+      }
+    }
+
+    // check if there is a case with the same complainants and respondents
+    const query = {
+      $and: [
+        {
+          natureOfDispute: payload.natureOfDispute,
+          complainants: {
+            $elemMatch: {
+              residents: { $in: payload.complainants.residents },
+            },
+          },
+        },
+        {
+          respondents: {
+            $elemMatch: {
+              residents: { $in: payload.respondents.residents },
+            },
+          },
+        },
+      ],
+    };
+
+    await this.validateAlreadyExistsByFilters(query, {
+      errorMessage: "Case already exists",
+    });
+
+    const caseData = {
       ...payload,
       caseNumber,
-    });
+    };
+
+    const newCase = await this.repository.create(caseData);
 
     if (!newCase) {
       throw new BadRequestError("Failed to create case");
     }
-
-    // Generate initial document (KP FORM 7)
-
-    // Send Notification to the involved parties
-    const compliant = Array.isArray(payload.complainants)
-      ? payload.complainants[0]
-      : payload.complainants;
-
-    const notification = await notificationService.createService({
-      title: `Case ${newCase.caseNumber} has been created`,
-      message: `Case ${newCase.caseNumber} has been created, please wait for the next step`,
-      type: "case_filing",
-      recipient: compliant,
-      relatedCase: newCase._id as ObjectId,
-      deliveryMethod: "inApp",
-      deliveryStatus: "sent",
-    });
-
-    if (!notification) {
-      throw new BadRequestError("Failed to create notification");
-    }
-
-    await auditService.createService({
-      action: "create",
-      entityType: "Case",
-      entityId: newCase?._id as ObjectId,
-      actionMessage: `Case ${newCase.caseNumber} has been created`,
-      createdBy: account._id as ObjectId,
-    });
 
     return newCase;
   }
@@ -83,21 +102,13 @@ class CaseService extends BaseService<CaseDocument> {
    * @returns The updated case document
    */
   async updateCase(
-    userId: ObjectId,
     caseId: string,
     payload: Partial<CaseDocument>
   ): Promise<CaseDocument> {
-    const _case = await this.validateExists(caseId);
-    if (!_case) {
+    const existingCase = await this.validateExists(caseId);
+
+    if (!existingCase) {
       throw new BadRequestError("Case not found");
-    }
-
-    const account = await accountService.validateExists(userId, {
-      select: "_id",
-    });
-
-    if (!account) {
-      throw new BadRequestError("User not found");
     }
 
     const updatedCase = await this.updateService(caseId, payload, {
@@ -108,41 +119,19 @@ class CaseService extends BaseService<CaseDocument> {
       throw new BadRequestError("Failed to update case");
     }
 
-    // Notification that the case is updated
-    await auditService.createService({
-      action: "update",
-      entityType: "Case",
-      entityId: _case._id as ObjectId,
-      actionMessage: `Case ${_case.caseNumber} has been updated`,
-      createdBy: account._id as ObjectId,
-    });
-
     return updatedCase;
   }
 
   /**
    * Escalate a case, this will move the case to the next step
-   * @param userId - The user ID of the escalator
    * @param caseId - The ID of the case to escalate
    * @param payload - The case data to escalate
    */
-  async escalateCase(
-    userId: ObjectId,
-    caseId: string,
-    payload: Partial<CaseDocument>
-  ) {
+  async escalateCase(caseId: string, payload: Partial<CaseDocument>) {
     const existingCase = await this.validateExists(caseId);
 
     if (!existingCase) {
       throw new BadRequestError("Case not found");
-    }
-
-    const account = await accountService.validateExists(userId, {
-      select: "_id",
-    });
-
-    if (!account) {
-      throw new BadRequestError("User not found");
     }
 
     const updatedCase = await this.updateService(caseId, payload, {
@@ -153,19 +142,6 @@ class CaseService extends BaseService<CaseDocument> {
       throw new BadRequestError("Failed to escalate case");
     }
 
-    // Generate Escalation Document (KP FORM 10)
-
-    // Send Notification to the involved parties
-
-    // Create Audit
-    await auditService.createService({
-      action: "escalate",
-      entityType: "Case",
-      entityId: existingCase._id as ObjectId,
-      actionMessage: `Case ${existingCase.caseNumber} has been escalated`,
-      createdBy: account._id as ObjectId,
-    });
-
     return updatedCase;
   }
 
@@ -174,14 +150,17 @@ class CaseService extends BaseService<CaseDocument> {
     caseId: string,
     payload: Partial<CaseDocument>
   ) {
-    const existingCase = await this.validateExists(caseId);
+    // Check if the case exists
+    const existingCase = await this.validateExists(caseId, {
+      errorMessage: "Case not found",
+    });
 
-    if (existingCase.isDeleted) {
-      throw new BadRequestError("Case not found");
-    }
-
-    if (existingCase.isResolved) {
-      throw new BadRequestError("Case already resolved");
+    // check if the case status is under mediation
+    if (
+      existingCase.status !== "under_mediation" ||
+      existingCase.resolution.type !== "escalated"
+    ) {
+      throw new BadRequestError("Case is not under mediation");
     }
 
     const account = await accountService.validateExists(userId, {
@@ -197,28 +176,20 @@ class CaseService extends BaseService<CaseDocument> {
       caseId,
       {
         ...payload,
-        status: "settled",
-        isResolved: true,
-        resolutionDate: new Date(),
+        status: "resolved",
+        resolution: {
+          ...existingCase.resolution,
+          type: "settled",
+          date: new Date(),
+          details: payload.resolution?.details,
+          attachments: payload.resolution?.attachments,
+        },
       },
       {
         select: "_id",
         errorMessage: "Failed to resolve case with settlement",
       }
     );
-
-    // Generate Settlement Document (KP FORM 11)
-
-    // Send Notification to the involved parties
-
-    // Create Audit
-    await auditService.createService({
-      action: "resolve",
-      entityType: "Case",
-      entityId: existingCase._id as ObjectId,
-      actionMessage: `Case ${existingCase.caseNumber} has been resolved with settlement`,
-      createdBy: account._id as ObjectId,
-    });
 
     return updatedCase;
   }
@@ -240,7 +211,7 @@ class CaseService extends BaseService<CaseDocument> {
     }
 
     const overDueCases = pendingCases.data.filter((_case) => {
-      const escalationDate = new Date(_case.createdAt);
+      const escalationDate = new Date(_case.mediationDetails.scheduledDate);
       const currentDate = new Date();
       const timeDiffInHours =
         (currentDate.getTime() - escalationDate.getTime()) / (1000 * 60 * 60);
@@ -259,14 +230,6 @@ class CaseService extends BaseService<CaseDocument> {
     if (!bulkEscalatedCase) {
       throw new BadRequestError("Failed to escalate cases");
     }
-
-    await auditService.createService({
-      action: "escalate",
-      entityType: "Case",
-      entityId: overDueCases[0]._id as ObjectId,
-      actionMessage: `Cases ${overDueCases[0].caseNumber} has been escalated`,
-      createdBy: userId,
-    });
 
     return bulkEscalatedCase;
   }

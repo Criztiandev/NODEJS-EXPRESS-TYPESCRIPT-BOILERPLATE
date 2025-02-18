@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
 import { BaseController } from "../../../core/base/controller/base.controller";
-import { AsyncHandler } from "../../../utils/decorator.utils";
+import { AsyncHandler, ZodValidation } from "../../../utils/decorator.utils";
 import { OfficialsDocument } from "../interface/officials.interface";
 import OfficialsService from "../service/officials.service";
+import { OfficialsValidation } from "../validation/officials.validation";
 
 class OfficialsController extends BaseController<OfficialsDocument> {
   protected service: typeof OfficialsService;
@@ -13,6 +14,7 @@ class OfficialsController extends BaseController<OfficialsDocument> {
   }
 
   @AsyncHandler()
+  @ZodValidation(OfficialsValidation)
   override async create(req: Request, res: Response) {
     const newOfficials = await this.service.createOfficial(req.body);
 

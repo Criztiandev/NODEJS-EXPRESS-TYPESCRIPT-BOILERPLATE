@@ -20,8 +20,10 @@ class CaseController extends BaseController<CaseDocument> {
   @AsyncHandler()
   @ZodValidation(CaseValidation)
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const newCase = await this.service.createCase(req.body);
+
     res.status(200).json({
-      payload: [],
+      payload: newCase,
       message: `${this.getResourceName()} created successfully`,
     });
   }

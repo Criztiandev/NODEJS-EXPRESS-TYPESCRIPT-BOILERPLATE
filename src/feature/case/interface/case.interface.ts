@@ -1,27 +1,40 @@
 import { Document, ObjectId } from "mongoose";
 import { SoftDeleteFields } from "../../../core/base/repository/base.repository";
+import { CaseParty } from "./case-party.interface";
 
 export interface Case {
   _id?: ObjectId | string;
-  title: string;
-  description: string;
-  caseNumber: string;
-  barangay: ObjectId | string;
-  caseType: string;
+  complainants: CaseParty;
+  respondents: CaseParty;
+  witnesses?: CaseParty;
   natureOfDispute: string;
-  filingDate?: Date;
-  status?: string;
-  isResolved?: boolean;
-  daysPending?: number;
-  complainants?: ObjectId | string[];
-  respondents?: ObjectId | string[];
-  assignedMediator?: ObjectId | string;
-  escalationReason?: string;
-  escalationDate?: Date;
-  resolutionDate?: any;
-  remarks?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  disputeDetails: {
+    description: string;
+    incidentDate: Date;
+    location: string;
+  };
+  mediationDetails: {
+    mediator: ObjectId | string;
+    scheduledDate: Date;
+    status: "scheduled" | "completed" | "cancelled" | "rescheduled";
+    remarks?: string;
+  };
+
+  timeline?: {
+    action: string;
+    date: Date;
+    actor: ObjectId | string;
+    remarks?: string;
+  }[];
+
+  resolution: {
+    date: Date;
+    type: "settled" | "withdrawn" | "escalated";
+    details?: string;
+    attachments?: string[];
+  };
+
+  status: "filed" | "under_mediation" | "resolved" | "escalated" | "withdrawn";
 }
 
 export interface CaseDocument

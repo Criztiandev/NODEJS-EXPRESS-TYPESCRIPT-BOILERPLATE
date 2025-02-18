@@ -12,32 +12,49 @@ class OfficialsService extends BaseService<OfficialsDocument> {
   }
 
   async createOfficial(body: OfficialsDocument) {
-    const { user, barangay, position, termStart, termEnd, isActive } = body;
+    const { user, barangay, position } = body;
 
     // check if the user is already an official
-    const existingUser = await userService.validateExists(user);
-
-    if (!existingUser) {
-      throw new BadRequestError("User not found");
-    }
+    await userService.validateExists(user, {
+      errorMessage: "User not found",
+    });
 
     // check if the barangay exist
     await barangayService.validateExists(barangay, {
       errorMessage: "Barangay not found",
     });
 
-    // check if the position is already taken
-    await this.validateExistsByFilters(
-      {
-        position,
-        barangay,
-      },
-      {
-        errorMessage: "Position already taken",
-      }
-    );
+    // check if the position is already taken in same barangay
+    const officialsParams = { position, barangay };
+    await this.validateAlreadyExistsByFilters(officialsParams, {
+      errorMessage: "Position already taken",
+    });
 
     return officialsRepository.create(body);
+  }
+
+  async updateOfficial(id: string, body: OfficialsDocument) {
+    const { user, barangay, position } = body;
+
+    // check if the user is already an official
+    await userService.validateExists(user, {
+      errorMessage: "User not found",
+    });
+
+    // check if the barangay exist
+    await barangayService.validateExists(barangay, {
+      errorMessage: "Barangay not found",
+    });
+
+    // check if the position is already taken in same barangay
+    const officialsParams = { position, barangay };
+    await this.validateExistsByFilters(officialsParams, {
+      errorMessage: "Position already taken",
+    });
+
+    return officialsRepository.update({ _id: id }, body, {
+      select: "-isDeleted -deletedAt -createdAt -updatedAt",
+    });
   }
 }
 
