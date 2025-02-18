@@ -51,7 +51,14 @@ export function AsyncHandler() {
 }
 
 // Decorator to validate request body using zod
-export function ZodValidation(schema: ZodObject<any, any>) {
+type ValidationOptions = {
+  isPartial?: boolean;
+};
+
+export function ZodValidation(
+  schema: ZodObject<any, any>,
+  options: ValidationOptions = {}
+) {
   return function (
     target: any,
     propertyKey: string,
@@ -59,12 +66,17 @@ export function ZodValidation(schema: ZodObject<any, any>) {
   ) {
     const originalMethod = descriptor.value;
 
-    // Create a new method that includes validation
     descriptor.value = function (req: any, res: Response, next: NextFunction) {
       const validateAndExecute = async () => {
         try {
+          // Use partial schema for updates, full schema for creation
+          const validationSchema = options.isPartial
+            ? schema.partial()
+            : schema;
+
           // Validate the request body
-          req.body = await schema.parseAsync(req.body);
+          req.body = await validationSchema.parseAsync(req.body);
+
           // Call the original method with the current context
           return await originalMethod.call(this, req, res, next);
         } catch (error) {
@@ -80,7 +92,6 @@ export function ZodValidation(schema: ZodObject<any, any>) {
         }
       };
 
-      // Return the validation promise
       return validateAndExecute();
     };
 

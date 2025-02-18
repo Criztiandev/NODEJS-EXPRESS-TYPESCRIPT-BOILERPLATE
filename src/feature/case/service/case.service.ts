@@ -100,6 +100,84 @@ class CaseService extends BaseService<CaseDocument> {
     return newCase;
   }
 
+  async updateCase(
+    id: ObjectId,
+    payload: Partial<CaseDocument>
+  ): Promise<CaseDocument> {
+    // check if the complainants is exist
+    const existingUsers = await userRepository.findAll({
+      _id: { $in: payload.complainants?.residents },
+    });
+
+    if (existingUsers.length !== payload.complainants?.residents.length) {
+      throw new BadRequestError("Complainants not found");
+    }
+
+    // check if the respondents is exist
+    const existingRespondents = await userRepository.findAll({
+      _id: { $in: payload.respondents?.residents },
+    });
+
+    if (existingRespondents.length !== payload.respondents?.residents.length) {
+      throw new BadRequestError("Respondents not found");
+    }
+
+    // check medicator exist
+    await officialsService.validateExists(
+      payload.mediationDetails?.mediator as ObjectId,
+      {
+        errorMessage: "Mediator not found",
+      }
+    );
+
+    // check if the witnesses is exist
+    if (payload.witnesses) {
+      const existingWitnesses = await userRepository.findAll({
+        _id: { $in: payload.witnesses?.residents },
+      });
+
+      if (existingWitnesses.length !== payload.witnesses?.residents.length) {
+        throw new BadRequestError("Witnesses not found");
+      }
+    }
+
+    // check if there is a case with the same complainants and respondents
+    const query = {
+      $and: [
+        {
+          natureOfDispute: payload.natureOfDispute,
+          complainants: {
+            $elemMatch: {
+              residents: { $in: payload.complainants.residents },
+            },
+          },
+        },
+        {
+          respondents: {
+            $elemMatch: {
+              residents: { $in: payload.respondents.residents },
+            },
+          },
+        },
+      ],
+    };
+
+    // check if the case already exists
+    await this.validateAlreadyExistsByFilters(query, {
+      errorMessage: "Case already exists",
+    });
+
+    const updatedCase = await this.repository.update({ _id: id }, payload, {
+      select: "-isDeleted -deletedAt",
+    });
+
+    if (!updatedCase) {
+      throw new BadRequestError("Failed to update case");
+    }
+
+    return updatedCase;
+  }
+
   private async generateCaseNumber(): Promise<string> {
     const totalCases = await this.repository.getTotalCasesCount();
 

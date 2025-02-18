@@ -27,6 +27,20 @@ class CaseController extends BaseController<CaseDocument> {
       message: `${this.getResourceName()} created successfully`,
     });
   }
+
+  @AsyncHandler()
+  @ZodValidation(CaseValidation, { isPartial: true })
+  async update(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const updatedCase = await this.service.updateService(
+      req.params.id,
+      req.body
+    );
+
+    res.status(200).json({
+      payload: updatedCase,
+      message: `${this.getResourceName()} updated successfully`,
+    });
+  }
 }
 
 export default new CaseController();
