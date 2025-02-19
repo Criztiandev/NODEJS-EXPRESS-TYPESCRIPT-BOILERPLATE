@@ -249,11 +249,14 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
    */
   protected async performHardDelete(
     filters: FilterQuery<T>,
-    options: { batch: boolean } = { batch: false }
+    options: { batch: boolean; select?: string } = { batch: false }
   ): Promise<T | null | any> {
     return options.batch
       ? this.model.deleteMany(filters)
-      : this.model.findOneAndDelete(filters).lean().select({ select: "_id" });
+      : this.model
+          .findOneAndDelete(filters)
+          .lean()
+          .select(options.select ?? "");
   }
 
   /**

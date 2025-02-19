@@ -177,3 +177,5 @@ not the type is not working
 30, Utils of aggregation is a must
 
 31. Update zod validation is not working
+
+32. Extend the interface to the validation
