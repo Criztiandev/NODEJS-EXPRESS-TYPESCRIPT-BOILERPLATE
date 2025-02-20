@@ -13,17 +13,18 @@ class BarangayService extends BaseService<BarangayDocument> {
   }
 
   async createBarangay(userId: ObjectId, payload: BarangayInput) {
-    const existingBarangay = await this.validateAlreadyExistsByFilters({
+    // Check if barangay already exists
+    const query = {
       $and: [
         { name: payload.name },
         { municipality: payload.municipality },
         { province: payload.province },
       ],
+    };
+    await this.validateItemExists(query, {
+      isExist: true,
+      errorMessage: "Barangay already exists",
     });
-
-    if (existingBarangay) {
-      throw new BadRequestError("Barangay already exists");
-    }
 
     const newBarangay = await this.repository.create(payload);
 
@@ -47,31 +48,28 @@ class BarangayService extends BaseService<BarangayDocument> {
     barangayId: string,
     payload: BarangayInput
   ) {
-    // check existing barangay
-    await this.validateExists(barangayId, {
+    const barangayIdQuery = { _id: barangayId };
+    const barangay = await this.validateItemExists(barangayIdQuery, {
+      isExist: false,
       errorMessage: "Barangay not found",
     });
 
     // check existing bararangay with same name, municipality, province and say it as taken
-    const existingBarangay = await this.validateExistsByFilters(
-      {
-        $and: [
-          { name: payload.name },
-          { municipality: payload.municipality },
-          { province: payload.province },
-        ],
-      },
-      {
-        errorMessage: "Barangay name, municipality, province is taken",
-      }
-    );
+    const existingBarangayQuery = {
+      $and: [
+        { name: payload.name },
+        { municipality: payload.municipality },
+        { province: payload.province },
+      ],
+    };
+    await this.validateItemExists(existingBarangayQuery, {
+      isExist: true,
+      errorMessage: "Barangay name, municipality, province is taken",
+    });
 
     const updatedBarangay = await this.repository.update(
-      { _id: barangayId },
-      payload,
-      {
-        select: "-isDeleted -deletedAt -createdAt -updatedAt",
-      }
+      barangayIdQuery,
+      payload
     );
 
     if (!updatedBarangay) {
@@ -84,7 +82,7 @@ class BarangayService extends BaseService<BarangayDocument> {
       actionMessage: `Barangay: ${payload.name} updated successfully`,
       entityId: updatedBarangay?._id as ObjectId,
       changes: {
-        before: existingBarangay,
+        before: barangay,
         after: payload,
       },
       createdBy: userId,

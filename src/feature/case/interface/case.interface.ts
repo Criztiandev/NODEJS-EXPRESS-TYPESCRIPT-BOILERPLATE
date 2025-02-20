@@ -1,43 +1,49 @@
+import { CaseStatus } from "../constants";
 import { Document, ObjectId } from "mongoose";
 import { SoftDeleteFields } from "../../../core/base/repository/base.repository";
-import { CaseParty } from "./case-party.interface";
+import { Participants } from "../../case-participants/interface/case-participants.interface";
 
 export interface Case {
-  _id?: ObjectId | string;
-  complainants: CaseParty;
-  respondents: CaseParty;
-  witnesses?: CaseParty;
-  natureOfDispute: string;
+  caseNumber: string;
+  participants: ObjectId | string;
   disputeDetails: {
     description: string;
     incidentDate: Date;
     location: string;
   };
+
   mediationDetails: {
     mediator: ObjectId | string;
     scheduledDate: Date;
-    status: "scheduled" | "completed" | "cancelled" | "rescheduled";
-    remarks?: string;
+    status: string;
+    remarks: string;
   };
 
   timeline?: {
     action: string;
     date: Date;
     actor: ObjectId | string;
-    remarks?: string;
+    remarks: string;
   }[];
 
-  resolution: {
+  settlement?: {
     date: Date;
-    type: "settled" | "withdrawn" | "escalated";
-    details?: string;
-    attachments?: string[];
+    type: string;
+    remarks: string;
   };
 
-  status: "filed" | "under_mediation" | "resolved" | "escalated" | "withdrawn";
+  status: typeof CaseStatus;
 }
 
 export interface CaseDocument
   extends Omit<Case, "_id">,
     Document,
     SoftDeleteFields {}
+
+export interface CaseWithParticipants extends Omit<Case, "participants"> {
+  participants: {
+    complainants: string[];
+    respondents: string[];
+    witnesses: string[];
+  };
+}

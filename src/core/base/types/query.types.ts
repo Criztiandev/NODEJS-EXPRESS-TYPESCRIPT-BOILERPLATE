@@ -51,5 +51,5 @@ export interface PaginationOptions extends QueryOptions {
 // Validate options
 export interface ValidateOptions extends QueryOptions {
   errorMessage?: string;
-  overideValidation?: boolean;
+  isExist?: boolean;
 }

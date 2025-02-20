@@ -1,18 +1,23 @@
 import { z } from "zod";
-import PartyValidation from "./party.validation";
 import { isValidObjectId } from "mongoose";
 
 export const CaseValidation = z.object({
   // Parties
-  complainants: PartyValidation,
-  respondents: PartyValidation,
-  witnesses: PartyValidation.optional(),
+  caseNumber: z
+    .string()
+    .min(1, { message: "caseNumber must be at least 1 character" })
+    .optional(),
+
+  participants: z.string().refine((id) => isValidObjectId(id), {
+    message: "Invalid case participants id",
+  }),
 
   // Nature of Dispute
   natureOfDispute: z
     .string()
     .min(1, { message: "natureOfDispute must be at least 1 character" })
     .max(155, { message: "natureOfDispute must be at most 155 characters" }),
+
   disputeDetails: z.object({
     description: z
       .string()

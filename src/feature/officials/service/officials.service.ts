@@ -1,6 +1,5 @@
 import { BaseRepository } from "../../../core/base/repository/base.repository";
 import { BaseService } from "../../../core/base/service/base.service";
-import { BadRequestError } from "../../../utils/error.utils";
 import barangayService from "../../barangay/service/barangay.service";
 import userService from "../../user/service/user.service";
 import { OfficialsDocument } from "../interface/officials.interface";
@@ -15,18 +14,27 @@ class OfficialsService extends BaseService<OfficialsDocument> {
     const { user, barangay, position } = body;
 
     // check if the user is already an official
-    await userService.validateExists(user, {
-      errorMessage: "User not found",
-    });
+    await userService.validateItemExists(
+      { _id: user },
+      {
+        isExist: false,
+        errorMessage: "User not found",
+      }
+    );
 
     // check if the barangay exist
-    await barangayService.validateExists(barangay, {
-      errorMessage: "Barangay not found",
-    });
+    await barangayService.validateItemExists(
+      { _id: barangay },
+      {
+        isExist: false,
+        errorMessage: "Barangay not found",
+      }
+    );
 
     // check if the position is already taken in same barangay
     const officialsParams = { position, barangay };
-    await this.validateAlreadyExistsByFilters(officialsParams, {
+    await this.validateItemExists(officialsParams, {
+      isExist: true,
       errorMessage: "Position already taken",
     });
 
@@ -37,18 +45,27 @@ class OfficialsService extends BaseService<OfficialsDocument> {
     const { user, barangay, position } = body;
 
     // check if the user is already an official
-    await userService.validateExists(user, {
-      errorMessage: "User not found",
-    });
+    await userService.validateItemExists(
+      { _id: user },
+      {
+        isExist: false,
+        errorMessage: "User not found",
+      }
+    );
 
     // check if the barangay exist
-    await barangayService.validateExists(barangay, {
-      errorMessage: "Barangay not found",
-    });
+    await barangayService.validateItemExists(
+      { _id: barangay },
+      {
+        isExist: false,
+        errorMessage: "Barangay not found",
+      }
+    );
 
     // check if the position is already taken in same barangay
     const officialsParams = { position, barangay };
-    await this.validateExistsByFilters(officialsParams, {
+    await this.validateItemExists(officialsParams, {
+      isExist: true,
       errorMessage: "Position already taken",
     });
 

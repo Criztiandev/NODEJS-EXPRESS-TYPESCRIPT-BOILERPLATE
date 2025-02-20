@@ -76,10 +76,8 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
   async findByFilters(
     filters: FilterQuery<T>,
     options: QueryOptions = {}
-  ): Promise<T | null> {
-    return this.buildQuery(filters, options)
-      .findOne()
-      .lean() as Promise<T | null>;
+  ): Promise<T[]> {
+    return this.buildQuery(filters, options).find().lean() as Promise<T[]>;
   }
 
   /**
@@ -176,12 +174,12 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
   async update(
     filters: FilterQuery<T>,
     data: UpdateQuery<T>,
-    options: UpdateQueryOptions
+    options?: UpdateQueryOptions
   ): Promise<T | null> {
     return this.model
       .findOneAndUpdate(filters, data, { new: true })
       .lean()
-      .select(options.select ?? "");
+      .select(options?.select ?? "-isDeleted -deletedAt -createdAt -updatedAt");
   }
 
   /**

@@ -179,3 +179,19 @@ not the type is not working
 31. Update zod validation is not working
 
 32. Extend the interface to the validation
+
+33. Constnats folder is a must
+
+34. if deleted at is icnluded it messup the model
+
+
+35. zod validatiopn should support function
+
+@ZodValidation(validation)
+function createUser(payload: User) {
+  return UserService.createUser(payload);
+}
+
+ 
+
+

@@ -4,6 +4,7 @@ import { BaseController } from "../../../core/base/controller/base.controller";
 import { AsyncHandler, ZodValidation } from "../../../utils/decorator.utils";
 import { CaseDocument } from "../interface/case.interface";
 import CaseService from "../service/case.service";
+import { CaseWithParticipantsValidation } from "../validation/case-with-participants.validation";
 
 class CaseController extends BaseController<CaseDocument> {
   protected service: typeof CaseService;
@@ -18,7 +19,7 @@ class CaseController extends BaseController<CaseDocument> {
   }
 
   @AsyncHandler()
-  @ZodValidation(CaseValidation)
+  @ZodValidation(CaseWithParticipantsValidation)
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     const newCase = await this.service.createCase(req.body);
 

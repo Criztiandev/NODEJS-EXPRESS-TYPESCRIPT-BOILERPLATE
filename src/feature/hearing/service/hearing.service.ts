@@ -13,7 +13,8 @@ class HearingService extends BaseService<HearingDocument> {
       case: payload.case,
     };
 
-    await this.validateAlreadyExistsByFilters(query, {
+    await this.validateItemExists(query, {
+      isExist: true,
       errorMessage: "Hearing already exists",
     });
 
@@ -22,9 +23,13 @@ class HearingService extends BaseService<HearingDocument> {
   }
 
   async updateHearing(id: string, payload: Partial<HearingDocument>) {
-    await this.validateExists(id, {
-      errorMessage: "Hearing not found",
-    });
+    await this.validateItemExists(
+      { _id: id },
+      {
+        isExist: false,
+        errorMessage: "Hearing not found",
+      }
+    );
 
     const updatedHearing = await this.repository.update({ _id: id }, payload, {
       select: "_id",

@@ -64,6 +64,16 @@ export abstract class BaseService<T extends Document & SoftDeleteFields> {
     return item;
   }
 
+  async getAllByIdsService(ids: ObjectId[] | string[]): Promise<T[]> {
+    const items = await this.repository.findAll({ _id: { $in: ids } });
+    return items;
+  }
+
+  async getAllByFiltersService(filters: FilterQuery<T>): Promise<T[]> {
+    const items = await this.repository.findByFilters(filters);
+    return items ?? [];
+  }
+
   /**
    * Find a soft deleted item by id
    * @param id - The id of the item to find
@@ -141,7 +151,7 @@ export abstract class BaseService<T extends Document & SoftDeleteFields> {
    * @param id - The id of the item to soft delete
    */
   async softDeleteService(id: ObjectId | string): Promise<void> {
-    const item = await this.validateExists(id);
+    const item = await this.validateItemExists({ _id: id }, { isExist: false });
 
     if (item.isDeleted) {
       throw new BadRequestError(`${this.modelName} is deleted`);
@@ -190,54 +200,7 @@ export abstract class BaseService<T extends Document & SoftDeleteFields> {
     await this.repository.restoreById(id, { select: "_id" });
   }
 
-  /**
-   * Validate if an item exists
-   * @param id - The id of the item to validate
-   * @param options - The query options
-   * @returns The item found
-   */
-  async validateExists(
-    id: ObjectId | string,
-    options: ValidateOptions = {}
-  ): Promise<T> {
-    const item = await this.repository.findById(id, {
-      select: "_id",
-      ...options,
-    });
-
-    if (!item) {
-      throw new BadRequestError(
-        options.errorMessage ?? `${this.modelName} not found`
-      );
-    }
-
-    return item;
-  }
-
-  async validateAlreadyExistsById(
-    id: ObjectId | string,
-    options: ValidateOptions = {}
-  ): Promise<boolean> {
-    const item = await this.repository.findById(id, {
-      select: "_id",
-      ...options,
-    });
-
-    if (item) {
-      throw new BadRequestError(
-        options.errorMessage ?? `${this.modelName} already exists`
-      );
-    }
-    return true;
-  }
-
-  /**
-   * Validate if an item exists by filters
-   * @param filters - The filters to apply to the query
-   * @param options - The query options
-   * @returns The item found
-   */
-  async validateExistsByFilters(
+  async validateItemExists(
     filters: FilterQuery<T>,
     options: ValidateOptions = {}
   ): Promise<T> {
@@ -246,28 +209,45 @@ export abstract class BaseService<T extends Document & SoftDeleteFields> {
       ...options,
     });
 
-    if (!item) {
+    if (options.isExist && item) {
+      throw new BadRequestError(
+        options.errorMessage ?? `${this.modelName} already exists`
+      );
+    }
+
+    if (!options.isExist && !item) {
       throw new BadRequestError(
         options.errorMessage ?? `${this.modelName} not found`
       );
     }
 
-    return item;
+    return item as unknown as T;
   }
-  async validateAlreadyExistsByFilters(
+
+  async validateMultipleItems<T>(
     filters: FilterQuery<T>,
-    options: ValidateOptions = {}
-  ): Promise<boolean> {
-    const item = await this.repository.findByFilters(filters, {
+    options: ValidateOptions = {
+      errorMessage: `${this.modelName} not found`,
+      isExist: false,
+    }
+  ): Promise<T[]> {
+    const items = await this.repository.findAll(filters, {
       select: "_id",
       ...options,
     });
-    if (item) {
+
+    if (options.isExist && items.length <= 0) {
+      throw new BadRequestError(
+        options.errorMessage ?? `${this.modelName} not found`
+      );
+    }
+
+    if (!options.isExist && items.length > 0) {
       throw new BadRequestError(
         options.errorMessage ?? `${this.modelName} already exists`
       );
     }
-    return true;
+    return items as unknown as T[];
   }
 
   /**

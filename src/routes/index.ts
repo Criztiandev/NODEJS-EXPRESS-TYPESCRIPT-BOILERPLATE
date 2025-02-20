@@ -11,6 +11,7 @@ import documentsRoutes from "./documents/documents.routes";
 import settlementRoutes from "./settlement/settlement.routes";
 import notificationRoutes from "./notification/notification.routes";
 import auditRoutes from "./audit/audit.routes";
+import caseParticipantsRoutes from "./case/case-participants.routes";
 
 const Routes = (app: Express) => {
   // Auth Route
@@ -25,6 +26,8 @@ const Routes = (app: Express) => {
   app.use("/api/barangay", barangayRoutes);
 
   app.use("/api/case", caseRoutes);
+  app.use("/api/case-participants", caseParticipantsRoutes);
+
   app.use("/api/hearing", hearingRoutes);
   app.use("/api/settlement", settlementRoutes);
   app.use("/api/documents", documentsRoutes);

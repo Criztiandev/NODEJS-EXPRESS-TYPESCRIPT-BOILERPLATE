@@ -38,9 +38,10 @@ class UserService extends BaseService<UserDocument> {
     const hashedPassword = await EncryptionUtils.hashPassword(user.password);
     user.password = hashedPassword;
 
-    await barangayService.validateExists(user.fullAddress.barangay, {
-      errorMessage: "Barangay does not exist",
-    });
+    await barangayService.validateMultipleItems(
+      { _id: user.fullAddress.barangay },
+      { errorMessage: "Barangay does not exist" }
+    );
 
     const createdUser = await super.createService(user);
     if (!createdUser) {

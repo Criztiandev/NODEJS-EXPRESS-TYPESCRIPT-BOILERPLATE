@@ -20,35 +20,6 @@ const populateConfig = [
   },
 ];
 
-// Define party sub-schema
-const partySchema = new Schema({
-  residents: [
-    {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-  ],
-  status: {
-    type: String,
-    enum: ["active", "withdrawn", "resolved"],
-    default: "active",
-  },
-  joinedDate: {
-    type: Date,
-    default: Date.now,
-  },
-  withdrawalDate: {
-    type: Date,
-    required: false,
-    default: null,
-  },
-  remarks: {
-    type: String,
-    required: false,
-  },
-});
-
 // Main case schema
 const caseSchema = new Schema(
   {
@@ -58,14 +29,11 @@ const caseSchema = new Schema(
       unique: true,
     },
 
-    // Complainants (can be multiple)
-    complainants: [partySchema],
-
-    // Respondents (can be multiple)
-    respondents: [partySchema],
-
-    // Witnesses (optional)
-    witnesses: [partySchema],
+    participants: {
+      type: Schema.Types.ObjectId,
+      ref: "CaseParticipants",
+      required: true,
+    },
 
     natureOfDispute: {
       type: String,
@@ -123,24 +91,10 @@ const caseSchema = new Schema(
       },
     ],
 
-    resolution: {
-      date: {
-        type: Date,
-        required: false,
-        default: null,
-      },
-      type: {
-        type: String,
-        enum: ["settled", "withdrawn", "escalated"],
-        required: false,
-        default: null,
-      },
-      details: {
-        type: String,
-        required: false,
-        default: null,
-      },
-      attachments: [String],
+    settlement: {
+      type: Schema.Types.ObjectId,
+      ref: "Settlement",
+      required: false,
     },
 
     // Case status and details

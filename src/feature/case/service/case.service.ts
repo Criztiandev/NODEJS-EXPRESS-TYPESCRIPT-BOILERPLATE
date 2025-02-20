@@ -1,10 +1,13 @@
+import { Types } from "mongoose";
 import { BaseService } from "../../../core/base/service/base.service";
 import { BadRequestError } from "../../../utils/error.utils";
-import { CaseDocument } from "../interface/case.interface";
+import caseParticipantsService from "../../case-participants/service/case-participants.service";
+import {
+  CaseDocument,
+  CaseWithParticipants,
+} from "../interface/case.interface";
 import CaseRepository from "../repository/case.repository";
-import userRepository from "../../user/repository/user.repository";
-import officialsService from "../../officials/service/officials.service";
-import { ObjectId } from "mongoose";
+import userService from "../../user/service/user.service";
 
 class CaseService extends BaseService<CaseDocument> {
   protected readonly repository: typeof CaseRepository;
@@ -20,164 +23,29 @@ class CaseService extends BaseService<CaseDocument> {
    * @returns The created case document
    */
 
-  async createCase(payload: Partial<CaseDocument>): Promise<CaseDocument> {
+  async createCase(payload: CaseWithParticipants): Promise<CaseDocument> {
     const caseNumber = await this.generateCaseNumber();
 
-    // check if the complainants is exist
-    const existingUsers = await userRepository.findAll({
-      _id: { $in: payload.complainants?.residents },
-    });
+    const { participants, ...caseData } = payload;
 
-    if (existingUsers.length !== payload.complainants?.residents.length) {
-      throw new BadRequestError("Complainants not found");
-    }
+    const newCaseId = new Types.ObjectId();
+    console.log(newCaseId);
 
-    // check if the respondents is exist
-    const existingRespondents = await userRepository.findAll({
-      _id: { $in: payload.respondents?.residents },
-    });
-
-    if (existingRespondents.length !== payload.respondents?.residents.length) {
-      throw new BadRequestError("Respondents not found");
-    }
-
-    // check medicator exist
-    await officialsService.validateExists(
-      payload.mediationDetails?.mediator as ObjectId,
-      {
-        errorMessage: "Mediator not found",
-      }
-    );
-
-    // check if the witnesses is exist
-    if (payload.witnesses) {
-      const existingWitnesses = await userRepository.findAll({
-        _id: { $in: payload.witnesses?.residents },
+    const newParticipants =
+      await caseParticipantsService.createCaseParticipants({
+        case: newCaseId,
+        participants,
       });
 
-      if (existingWitnesses.length !== payload.witnesses?.residents.length) {
-        throw new BadRequestError("Witnesses not found");
-      }
-    }
+    // const newCase = await this.repository.create({
+    //   ...caseData,
+    //   caseNumber,
+    // });
 
-    // check if there is a case with the same complainants and respondents
-    const query = {
-      $and: [
-        {
-          natureOfDispute: payload.natureOfDispute,
-          complainants: {
-            $elemMatch: {
-              residents: { $in: payload.complainants.residents },
-            },
-          },
-        },
-        {
-          respondents: {
-            $elemMatch: {
-              residents: { $in: payload.respondents.residents },
-            },
-          },
-        },
-      ],
-    };
-
-    // check if the case already exists
-    await this.validateAlreadyExistsByFilters(query, {
-      errorMessage: "Case already exists",
-    });
-
-    const caseData = {
-      ...payload,
-      caseNumber,
-    };
-
-    const newCase = await this.repository.create(caseData);
-
-    if (!newCase) {
-      throw new BadRequestError("Failed to create case");
-    }
-
-    return newCase;
+    return [] as any;
   }
 
-  async updateCase(
-    id: ObjectId,
-    payload: Partial<CaseDocument>
-  ): Promise<CaseDocument> {
-    // check if the complainants is exist
-    const existingUsers = await userRepository.findAll({
-      _id: { $in: payload.complainants?.residents },
-    });
-
-    if (existingUsers.length !== payload.complainants?.residents.length) {
-      throw new BadRequestError("Complainants not found");
-    }
-
-    // check if the respondents is exist
-    const existingRespondents = await userRepository.findAll({
-      _id: { $in: payload.respondents?.residents },
-    });
-
-    if (existingRespondents.length !== payload.respondents?.residents.length) {
-      throw new BadRequestError("Respondents not found");
-    }
-
-    // check medicator exist
-    await officialsService.validateExists(
-      payload.mediationDetails?.mediator as ObjectId,
-      {
-        errorMessage: "Mediator not found",
-      }
-    );
-
-    // check if the witnesses is exist
-    if (payload.witnesses) {
-      const existingWitnesses = await userRepository.findAll({
-        _id: { $in: payload.witnesses?.residents },
-      });
-
-      if (existingWitnesses.length !== payload.witnesses?.residents.length) {
-        throw new BadRequestError("Witnesses not found");
-      }
-    }
-
-    // check if there is a case with the same complainants and respondents
-    const query = {
-      $and: [
-        {
-          natureOfDispute: payload.natureOfDispute,
-          complainants: {
-            $elemMatch: {
-              residents: { $in: payload.complainants.residents },
-            },
-          },
-        },
-        {
-          respondents: {
-            $elemMatch: {
-              residents: { $in: payload.respondents.residents },
-            },
-          },
-        },
-      ],
-    };
-
-    // check if the case already exists
-    await this.validateAlreadyExistsByFilters(query, {
-      errorMessage: "Case already exists",
-    });
-
-    const updatedCase = await this.repository.update({ _id: id }, payload, {
-      select: "-isDeleted -deletedAt",
-    });
-
-    if (!updatedCase) {
-      throw new BadRequestError("Failed to update case");
-    }
-
-    return updatedCase;
-  }
-
+  // Helper function to generate case number
   private async generateCaseNumber(): Promise<string> {
     const totalCases = await this.repository.getTotalCasesCount();
 
