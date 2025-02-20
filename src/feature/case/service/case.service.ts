@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { ObjectId, Types } from "mongoose";
 import { BaseService } from "../../../core/base/service/base.service";
 import { BadRequestError } from "../../../utils/error.utils";
 import caseParticipantsService from "../../case-participants/service/case-participants.service";
@@ -37,12 +37,17 @@ class CaseService extends BaseService<CaseDocument> {
         participants,
       });
 
-    // const newCase = await this.repository.create({
-    //   ...caseData,
-    //   caseNumber,
-    // });
+    const newCase = await this.repository.create({
+      ...caseData,
+      caseNumber,
+      participants: newParticipants._id as ObjectId,
+    });
 
-    return [] as any;
+    if (!newCase) {
+      throw new BadRequestError("Failed to create case");
+    }
+
+    return newCase;
   }
 
   // Helper function to generate case number

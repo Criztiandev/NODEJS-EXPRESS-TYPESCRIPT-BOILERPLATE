@@ -236,15 +236,15 @@ export abstract class BaseService<T extends Document & SoftDeleteFields> {
       ...options,
     });
 
-    if (options.isExist && items.length <= 0) {
+    if (options.isExist && items.length > 0) {
       throw new BadRequestError(
-        options.errorMessage ?? `${this.modelName} not found`
+        options.errorMessage ?? `${this.modelName} already exists`
       );
     }
 
-    if (!options.isExist && items.length > 0) {
+    if (!options.isExist && items.length <= 0) {
       throw new BadRequestError(
-        options.errorMessage ?? `${this.modelName} already exists`
+        options.errorMessage ?? `${this.modelName} not found`
       );
     }
     return items as unknown as T[];

@@ -1,6 +1,46 @@
 import { Schema, model } from "mongoose";
 import { CaseParticipantsDocument } from "../feature/case-participants/interface/case-participants.interface";
 
+const populateConfig = [
+  {
+    path: "complainants.resident",
+    select: "firstName lastName middleName fullAddress email phoneNumber",
+    // Include virtuals in the populate
+    options: { virtuals: true },
+  },
+  {
+    path: "respondents.resident",
+    select: "firstName lastName middleName fullAddress email phoneNumber",
+    options: { virtuals: true },
+  },
+  {
+    path: "witnesses.resident",
+    select: "firstName lastName middleName fullAddress email phoneNumber",
+    options: { virtuals: true },
+  },
+];
+
+const ParticipantSchema = new Schema({
+  resident: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+  status: {
+    type: String,
+    required: true,
+    enum: ["active", "withdrawn"],
+    default: "active",
+  },
+  joinedDate: {
+    type: Date,
+    default: Date.now,
+  },
+  withdrawalDate: Date,
+  withdrawalReason: String,
+  remarks: String,
+});
+
 const caseParticipantsSchema = new Schema(
   {
     case: {
@@ -10,74 +50,9 @@ const caseParticipantsSchema = new Schema(
       index: true,
     },
 
-    complainants: [
-      {
-        resident: {
-          type: Schema.Types.ObjectId,
-          ref: "User",
-          required: true,
-        },
-        status: {
-          type: String,
-          required: true,
-          enum: ["active", "withdrawn"],
-          default: "active",
-        },
-        joinedDate: {
-          type: Date,
-          default: Date.now,
-        },
-        withdrawalDate: Date,
-        withdrawalReason: String,
-        remarks: String,
-      },
-    ],
-
-    respondents: [
-      {
-        resident: {
-          type: Schema.Types.ObjectId,
-          ref: "User",
-          required: true,
-        },
-        status: {
-          type: String,
-          required: true,
-          enum: ["active", "withdrawn"],
-          default: "active",
-        },
-        joinedDate: {
-          type: Date,
-          default: Date.now,
-        },
-        withdrawalDate: Date,
-        withdrawalReason: String,
-        remarks: String,
-      },
-    ],
-
-    witnesses: [
-      {
-        resident: {
-          type: Schema.Types.ObjectId,
-          ref: "User",
-          required: false,
-        },
-        status: {
-          type: String,
-          required: true,
-          enum: ["active", "withdrawn"],
-          default: "active",
-        },
-        joinedDate: {
-          type: Date,
-          default: Date.now,
-        },
-        withdrawalDate: Date,
-        withdrawalReason: String,
-        remarks: String,
-      },
-    ],
+    complainants: [ParticipantSchema],
+    respondents: [ParticipantSchema],
+    witnesses: [ParticipantSchema],
 
     isDeleted: {
       type: Boolean,
@@ -93,7 +68,13 @@ const caseParticipantsSchema = new Schema(
   }
 );
 
+// Populate the caseParticipants field in the Case model
+caseParticipantsSchema.pre(["find", "findOne"], function (next) {
+  this.populate(populateConfig);
+  next();
+});
+
 export default model<CaseParticipantsDocument>(
-  "Caseparticipants",
+  "CaseParticipants",
   caseParticipantsSchema
 );

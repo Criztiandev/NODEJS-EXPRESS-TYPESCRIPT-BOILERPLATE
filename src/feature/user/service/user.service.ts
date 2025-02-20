@@ -6,7 +6,6 @@ import { BadRequestError } from "../../../utils/error.utils";
 import { UserDocument } from "../interface/user.interface";
 import userRepository from "../repository/user.repository";
 import barangayService from "../../barangay/service/barangay.service";
-import { UserInput } from "../validation/user.validation";
 import {
   PaginatedResponse,
   PaginationQueryParams,

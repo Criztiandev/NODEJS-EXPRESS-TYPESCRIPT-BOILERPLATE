@@ -5,9 +5,9 @@ export interface Participants {
   resident: ObjectId | string;
   status: string;
   joinedDate: Date;
-  withdrawalDate: Date;
-  withdrawalReason: string;
-  remarks: string;
+  withdrawalDate: Date | null;
+  withdrawalReason: string | null;
+  remarks: string | null;
 }
 
 export interface CaseParticipants {

@@ -3,20 +3,23 @@ import { CaseDocument } from "../feature/case/interface/case.interface";
 
 const populateConfig = [
   {
-    path: "complainants.residents",
-    select: "firstName lastName middleName fullAddress email phoneNumber",
-  },
-  {
-    path: "respondents.residents",
-    select: "firstName lastName middleName fullAddress email phoneNumber",
-  },
-  {
-    path: "witnesses.residents",
-    select: "firstName lastName middleName fullAddress email phoneNumber",
+    path: "participants",
+    select: `
+      complainants.resident complainants.status complainants.joinedDate 
+      respondents.resident respondents.status respondents.joinedDate
+      witnesses.resident witnesses.status witnesses.joinedDate
+      `,
+    options: { virtuals: true },
   },
   {
     path: "mediationDetails.mediator",
-    select: "user position barangay",
+    select: "firstName lastName middleName fullAddress email phoneNumber",
+    options: { virtuals: true },
+  },
+  {
+    path: "settlement",
+    select: "settlementAmount settlementDate settlementStatus",
+    options: { virtuals: true },
   },
 ];
 
@@ -145,8 +148,6 @@ caseSchema.pre(["find", "findOne"], function (next) {
 
 // Indexes for common queries
 caseSchema.index({ caseNumber: 1 });
-caseSchema.index({ "complainants.user": 1 });
-caseSchema.index({ "respondents.user": 1 });
 caseSchema.index({ status: 1, createdAt: -1 });
 
 export default model<CaseDocument>("Case", caseSchema);
