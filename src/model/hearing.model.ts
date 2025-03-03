@@ -22,12 +22,12 @@ const hearingSchema = new Schema(
       type: String,
       required: true,
       enum: [
-        "scheduled",
-        "ongoing",
-        "completed",
-        "cancelled",
-        "rescheduled",
-        "no_show",
+        "scheduled", // Scheduled but not yet held
+        "ongoing", // Currently in progress
+        "completed", // Completed successfully
+        "cancelled", // Cancelled before occurrence
+        "rescheduled", // Rescheduled to a new date
+        "no_show", // No show by any party
       ],
       default: "scheduled",
     },
@@ -72,7 +72,7 @@ const hearingSchema = new Schema(
             required: true,
           },
           arrivalTime: Date,
-          remarks: String,
+          remarks: { type: String, required: false },
         },
       ],
       respondents: [
@@ -87,7 +87,7 @@ const hearingSchema = new Schema(
             required: true,
           },
           arrivalTime: Date,
-          remarks: String,
+          remarks: { type: String, required: false },
         },
       ],
       witnesses: [

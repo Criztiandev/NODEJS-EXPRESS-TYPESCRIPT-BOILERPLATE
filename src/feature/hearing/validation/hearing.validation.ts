@@ -79,7 +79,7 @@ export const HearingValidation = z.object({
           .refine((time) => !isNaN(new Date(time).getTime()), {
             message: "Invalid time format",
           }),
-        remarks: z.string(),
+        remarks: z.string().optional(),
       })
     ),
     respondents: z.array(
@@ -93,7 +93,7 @@ export const HearingValidation = z.object({
           .refine((time) => !isNaN(new Date(time).getTime()), {
             message: "Invalid time format",
           }),
-        remarks: z.string(),
+        remarks: z.string().optional(),
       })
     ),
     witnesses: z
@@ -108,7 +108,7 @@ export const HearingValidation = z.object({
             .refine((time) => !isNaN(new Date(time).getTime()), {
               message: "Invalid time format",
             }),
-          remarks: z.string(),
+          remarks: z.string().optional(),
         })
       )
       .optional(),
@@ -133,39 +133,49 @@ export const HearingValidation = z.object({
       .optional(),
   }),
 
-  proceedings: z.object({
-    summary: z.string(),
-    agreements: z.array(
-      z.object({
-        description: z.string(),
-        agreedBy: z.array(
-          z.object({
-            resident: z.string().refine((id) => isValidObjectId(id), {
-              message: "Invalid user id",
-            }),
-            party: z.enum(["complainant", "respondent"]),
-          })
-        ),
-      })
-    ),
-  }),
-
-  outcome: z.object({
-    result: z.enum(["settled", "not_settled", "for_followup", "escalated"]),
-    settlementReached: z.boolean(),
-    reasonIfNotSettled: z.string(),
-  }),
-
-  attachments: z.array(
-    z.object({
-      type: z.enum(["minutes", "evidence", "agreement", "other"]),
-      fileName: z.string(),
-      fileUrl: z.string(),
-      uploadedBy: z.string().refine((id) => isValidObjectId(id), {
-        message: "Invalid user id",
-      }),
+  proceedings: z
+    .object({
+      summary: z.string(),
+      agreements: z.array(
+        z.object({
+          description: z.string(),
+          agreedBy: z.array(
+            z.object({
+              resident: z.string().refine((id) => isValidObjectId(id), {
+                message: "Invalid user id",
+              }),
+              party: z.enum(["complainant", "respondent"]),
+            })
+          ),
+        })
+      ),
     })
-  ),
+    .optional(),
+
+  outcome: z
+    .object({
+      result: z
+        .enum(["settled", "not_settled", "for_followup", "escalated"])
+        .optional(),
+      settlementReached: z.boolean().optional(),
+      reasonIfNotSettled: z.string().optional(),
+      nextHearingNeeded: z.boolean().optional(),
+      nextHearingDate: z.string().optional(),
+    })
+    .optional(),
+
+  attachments: z
+    .array(
+      z.object({
+        type: z.enum(["minutes", "evidence", "agreement", "other"]),
+        fileName: z.string(),
+        fileUrl: z.string(),
+        uploadedBy: z.string().refine((id) => isValidObjectId(id), {
+          message: "Invalid user id",
+        }),
+      })
+    )
+    .optional(),
 });
 
 export type HearingInput = z.infer<typeof HearingValidation>;

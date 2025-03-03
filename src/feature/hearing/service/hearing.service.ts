@@ -14,8 +14,8 @@ class HearingService extends BaseService<HearingDocument> {
     };
 
     await this.validateItemExists(query, {
-      isExist: true,
-      errorMessage: "Hearing already exists",
+      isExist: false,
+      errorMessage: "Hearing does not exist",
     });
 
     const newHearing = await this.repository.create(payload);
