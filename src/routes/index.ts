@@ -30,7 +30,7 @@ const Routes = (app: Express) => {
 
   app.use("/api/hearing", hearingRoutes);
   app.use("/api/settlement", settlementRoutes);
-  app.use("/api/documents", documentsRoutes);
+  app.use("/api/document", documentsRoutes);
 
   app.use("/api/notification", notificationRoutes);
   app.use("/api/audit", auditRoutes);
