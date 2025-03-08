@@ -49,7 +49,6 @@ class AuthService {
   }
 
   async login(email: string, password: string): Promise<LoginDTO> {
-    // Find user
     const user = await this.authRepository.findUserByEmail(email);
     if (!user) {
       throw new BadRequestError("User not found");

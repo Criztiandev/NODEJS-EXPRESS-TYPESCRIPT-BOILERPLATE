@@ -1,16 +1,14 @@
 import { ObjectId, Schema } from "mongoose";
 import { BadRequestError } from "../../../utils/error.utils";
 import { generateOTP as generateOTPUtils } from "../../../utils/generate.utilts";
-import AccountService from "../../account/service/account.service";
 import OtpRepository from "../repository/otp.repository";
+import tokenUtils from "../../../utils/token.utils";
 
 class OTPService {
-  private readonly accountService: typeof AccountService;
   private readonly otpRepository: typeof OtpRepository;
   private readonly OTP_RATE_LIMIT_MINUTES = 15;
 
   constructor() {
-    this.accountService = AccountService;
     this.otpRepository = OtpRepository;
   }
 
@@ -30,7 +28,11 @@ class OTPService {
     return otpRecord;
   }
 
-  async verifyOTP(UID: Schema.Types.ObjectId, otp: string) {
+  async verifyOTP(UID: Schema.Types.ObjectId | null, otp: string) {
+    if (!UID) {
+      throw new BadRequestError("UID is required");
+    }
+
     const otpRecord = await this.otpRepository.findOTPByUIDAndOTP(UID, otp);
 
     if (!otpRecord) {
@@ -43,7 +45,7 @@ class OTPService {
       throw new BadRequestError("Failed to update OTP");
     }
 
-    return otpRecord;
+    return updatedOtp;
   }
 
   async verifyOTPByEmail(UID: Schema.Types.ObjectId, email: string) {
@@ -75,16 +77,8 @@ class OTPService {
     return await this.generateOTP({ email, UID });
   }
 
-  async checkOTP(email: string) {
-    const user = await this.accountService.getUserByEmail(email);
-
-    if (!user) {
-      throw new BadRequestError("User not found");
-    }
-
-    const otpRecord = await this.otpRepository.findOtpByUserId(
-      user._id as Schema.Types.ObjectId
-    );
+  async checkOTP(UID: Schema.Types.ObjectId) {
+    const otpRecord = await this.otpRepository.findOtpByUserId(UID);
     return !!otpRecord;
   }
 }

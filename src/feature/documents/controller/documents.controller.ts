@@ -16,13 +16,13 @@ class DocumentsController extends BaseController<DocumentsDocument> {
   async createCaseDocument(req: Request, res: Response, next: NextFunction) {
     const { caseId } = req.params;
     const { type, fileName, fileUrl } = req.body;
-    const document = await this.service.createCaseDocument(
-      caseId,
-      type,
-      fileName,
-      fileUrl
-    );
-    res.status(200).json({ document });
+    // const document = await this.service.createCaseDocument(
+    //   caseId,
+    //   type,
+    //   fileName,
+    //   fileUrl
+    // );
+    res.status(200).json({ message: "Document created successfully" });
   }
 }
 

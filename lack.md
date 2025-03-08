@@ -195,3 +195,12 @@ function createUser(payload: User) {
  
 
 
+36: When I changet he schema in validation or when I change the model it will change and addopt especially the interface and the model
+
+
+37. I neeed this     const existingCase = await this.caseService.getByIdService(caseId, {
+      populate: {
+        path: 'participants',
+        populate: ['complainants.resident', 'respondents.resident', 'witnesses.resident']
+      }
+    }) as CaseDocumentWithParticipants;

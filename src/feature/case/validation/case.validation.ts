@@ -19,6 +19,7 @@ export const CaseValidation = z.object({
     .max(155, { message: "natureOfDispute must be at most 155 characters" }),
 
   disputeDetails: z.object({
+    type: z.enum(["Civil Case", "Criminal Case"]),
     description: z
       .string()
       .min(1, { message: "description must be at least 1 character" })

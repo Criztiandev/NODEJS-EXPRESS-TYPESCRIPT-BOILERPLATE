@@ -39,6 +39,7 @@ export class AccountRepository extends BaseRepository<AccountDocument> {
     email: string,
     select: string = AccountRepository.DEFAULT_SELECT
   ) {
+    console.log(email);
     return this.model
       .findOne({ email, isDeleted: false })
       .select(select)

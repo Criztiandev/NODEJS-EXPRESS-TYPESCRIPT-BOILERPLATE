@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "rare-basis-452610-a5",
+  "private_key_id": "4dcdc4b8d36c6e653f12c68539b4a7b9bb0deba3",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCmxg9ZtkYR0+C2\nEekZ/qLUHTf+Zvg6epD3B/YvAGk39Els5hW/hJluz63rETi9gTqXwA3RMNZPRVF/\njbExj9ANyFiC8myGlPQbJUlOOlRIgMHJynTPnoLZqsapF28bOTrB16rtKVC2m5Zy\n9lnWfh9NrfRr+3VIYbyGCMRtw/rMA19Zh7LNNePxO8Z9cFDyM757EGnlGRMNkIPA\n7vjgUyA3OjRzMMa03kY/7bs3aL8QsR72MFdqwOSDXAlHAv/uiY6bmHsZ/XPHhiSx\nyrHoShWGIkEXlP/oE7y15DoMAtXbnGRY2vnb72A9jSLimIUG2eOPxAQ2mTBeZPw/\nApEyh3rzAgMBAAECggEAEPnSMDCUm1X05rOWBbZcvrimrXevxswZG3ws/AXPsAlm\nu/YDurX1pEjxjB75ppiT7UR4Y5XUCsekjxZONhxMckq1b8bbcyuQWX8HIjZfw+2P\nTEoWb9fTu/JdPHMNNTkzGO4qEPAGrj/SJaub43B9ITwWyDMVciO4u/AChqXPTprT\nNSdxP/4V3r7pp0Ek+KOk85HfjvmamW8979FqbupaOOtwwgqeE3d9rmMKbIKhyV41\nTnUxD55JmLLh1CP3K34i0PYw/QV22pq5Tt9aXgvwrSmVZ2GtLAhNthjv8gPgOgH4\nWnNcO1hvp4uowZdUQtTXYBCjC6D9SF0WfGR+JdRiKQKBgQDRaS1ssBwLU6YHuCsR\nw+wM31ujnHQSMChsxl4amTHwk/bmyp8eQ+Q9SxcS92d5POKbX3AR7cnE/GRask0p\nGJ9NjQ4PTPeyNo6XB5fv6TH4zbYFqoOXgxpkvjyauu/MddLitVhZK8YqCEteSJ/N\nwamLy7shN1oKtr732nos9OF5FwKBgQDL4IRk6YMTaaIp1KDW4rv8ZJs2OsjwUuD0\n+eZliYbWGSn8+cGVexYBNZaAW3Dk9/6cRt+anH8KE3qFSdk1hxS5NJHxzGQgCwQR\nJzy54k0UlLlYIcXnHrq5sXrzvl+V7ni2irFNzy5G+ofxwmCQgVtkR5V9GeCrzO9R\nvQbHPHA+hQKBgQCqofIigumHDTTXS2jExAkegA1ypnQpsdXutEBPmg6IQnjHm8jF\n53odu4bkrHVC46qeAckWwtRKz4GSKYEYAHklvs77BrM6IpxTUhuqoDBY1H4B5evt\n1CT4e850IehtiIA6vJttpW6GJ1YKUFDuXmQhhfNH4Itc+YVn/jzZTvw+JwKBgEKt\nqV8/p+jfcXPw4LGm8gh39vNjgnhnAr/cQ2gN9JVtIXhlTtTOrsGyfwh335JjMVh3\nLYZpjHsFJ9sT7gA9r59q/Bhy2oRIVgouJQQ+aStEAOI8GXefaz50N1wkdSqaFczN\ny3NBQUdhhLii8+YPCI7hgpipr/tAST0Yb3EV6TfpAoGADQXW77xUUmFLoWC16TGW\nlzm1/wfL+kVhOIgdi/GiMk4OfxTelkUCsznAACJXT5AdMlBnQOXiFDJIZ0Iua/bB\nj9mBxi8ZbYO6Gd1YHccfRdFynojbUV2vp56k1pKBjpwC9XATWfyFnrE4RexZgxVM\n8EDJdAXv+DTI1GFtet2HRrE=\n-----END PRIVATE KEY-----\n",
+  "client_email": "barangay-justice-system-google@rare-basis-452610-a5.iam.gserviceaccount.com",
+  "client_id": "107042442955457279397",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/barangay-justice-system-google%40rare-basis-452610-a5.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

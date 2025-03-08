@@ -42,7 +42,6 @@ class CaseparticipantsService extends BaseService<CaseParticipantsDocument> {
     respondents: string[];
     witnesses?: string[];
   }) {
-    console.log(participants);
     await userService.validateMultipleItems(
       { _id: { $in: participants.complainants } },
       {

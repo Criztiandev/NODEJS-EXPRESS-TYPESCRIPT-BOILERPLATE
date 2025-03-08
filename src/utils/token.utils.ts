@@ -13,14 +13,14 @@ class TokenUtils {
     });
   }
 
-  verifyToken(
+  verifyToken<T>(
     token: string,
     secret: string = process.env.JWT_SECRET || ""
-  ): { payload: any; expired: boolean } {
+  ): { payload: T | any; expired: boolean } {
     try {
       const decoded = jwt.verify(token, secret, {
         ignoreExpiration: false,
-      }) as { data: any[] };
+      }) as { data: T };
 
       return { payload: decoded.data, expired: false };
     } catch (e) {

@@ -10,6 +10,7 @@ import RegisterValidation from "../validation/register.validation";
 import ForgotPasswordValidation from "../validation/forgot-password.validation";
 import VerifyEmailValidation from "../validation/verify-email.validation";
 import OtpValidation from "../validation/otp.validation";
+import { OtpTokenPayload } from "../interface/otp/otp.interface";
 
 class AuthController {
   @AsyncHandler()
@@ -28,17 +29,9 @@ class AuthController {
   @AsyncHandler()
   @ZodValidation(LoginValidation)
   async login(req: Request, res: Response, next: NextFunction) {
-    /**
-     * @swagger
-     * tags: ['Auth']
-     * summary: Authenticate user and return session tokens
-     * description: Endpoint to authenticate users using email and password, returns user role and session tokens
-     */
-
     const { email, password } = req.body;
     const { user, tokens } = await authService.login(email, password);
 
-    // Set session
     req.session.user = user;
     req.session.accessToken = tokens.accessToken;
 
@@ -87,10 +80,10 @@ class AuthController {
     const { token } = req.params;
     const { otp } = req.body;
 
-    const { payload } = tokenUtils.verifyToken(token);
+    const { payload } = tokenUtils.verifyToken<OtpTokenPayload>(token);
 
-    await otpService.verifyOTP(payload.UID, otp);
-    const { link } = await accountService.verifyAccount(payload.email);
+    await otpService.verifyOTP(payload?.UID ?? null, otp);
+    const { link } = await accountService.verifyAccount(payload?.email ?? "");
 
     res.status(200).json({
       payload: { link },

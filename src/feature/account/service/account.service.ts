@@ -3,19 +3,21 @@ import config from "../../../config/config";
 import EncryptionUtils from "../../../utils/encryption.utils";
 import { BadRequestError, UnauthorizedError } from "../../../utils/error.utils";
 import tokenUtils from "../../../utils/token.utils";
-import otpService from "../../auth/service/otp.service";
 import { BaseService } from "../../../core/base/service/base.service";
 import accountRepository, {
   AccountRepository,
   AccountDocument,
 } from "../repository/account.repository";
-
+import OtpService from "../../auth/service/otp.service";
+import { OtpTokenPayload } from "../../auth/interface/otp/otp.interface";
 export class AccountService extends BaseService<AccountDocument> {
   private readonly accountRepository: AccountRepository;
+  private readonly otpService: typeof OtpService;
 
   constructor(repository: AccountRepository) {
     super(repository);
     this.accountRepository = repository;
+    this.otpService = OtpService;
   }
 
   /**
@@ -147,10 +149,14 @@ export class AccountService extends BaseService<AccountDocument> {
    * Restore account with OTP validation
    */
   async restoreAccount(token: string, otp: string) {
-    const { payload } = tokenUtils.verifyToken(token);
+    const { payload } = tokenUtils.verifyToken<OtpTokenPayload>(token);
+
+    if (!payload) {
+      throw new BadRequestError("Invalid token");
+    }
 
     const user = await this.accountRepository.findDeletedAccountByEmail(
-      payload.email
+      payload?.email
     );
 
     if (!user) {
@@ -166,7 +172,7 @@ export class AccountService extends BaseService<AccountDocument> {
       throw new BadRequestError("Account is already deleted");
     }
 
-    const isValidOtp = await otpService.verifyOTP(payload.UID, otp);
+    const isValidOtp = await this.otpService.verifyOTP(payload.UID, otp);
 
     if (!isValidOtp) {
       throw new BadRequestError("Invalid OTP");
@@ -196,7 +202,7 @@ export class AccountService extends BaseService<AccountDocument> {
       { email: email, UID: user._id },
       "1h"
     );
-    await otpService.generateOTP({ email, UID: user._id as ObjectId });
+    await this.otpService.generateOTP({ email, UID: user._id as ObjectId });
 
     return {
       link: `${config.BACKEND_URL}/api/account/restore/${token}`,

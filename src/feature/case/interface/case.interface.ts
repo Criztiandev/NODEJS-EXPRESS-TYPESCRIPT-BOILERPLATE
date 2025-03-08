@@ -6,7 +6,11 @@ import { Participants } from "../../case-participants/interface/case-participant
 export interface Case {
   caseNumber: string;
   participants: ObjectId | string;
+
+  natureOfDispute: string;
+
   disputeDetails: {
+    type: string;
     description: string;
     incidentDate: Date;
     location: string;
@@ -39,6 +43,11 @@ export interface CaseDocument
   extends Omit<Case, "_id">,
     Document,
     SoftDeleteFields {}
+
+export interface CaseDocumentWithParticipants
+  extends Omit<CaseDocument, "participants"> {
+  participants: Participants;
+}
 
 export interface CaseWithParticipants extends Omit<Case, "participants"> {
   participants: {

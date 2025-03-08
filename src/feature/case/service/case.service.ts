@@ -1,19 +1,21 @@
 import { ObjectId, Types } from "mongoose";
 import { BaseService } from "../../../core/base/service/base.service";
 import { BadRequestError } from "../../../utils/error.utils";
-import caseParticipantsService from "../../case-participants/service/case-participants.service";
 import {
   CaseDocument,
   CaseWithParticipants,
 } from "../interface/case.interface";
 import CaseRepository from "../repository/case.repository";
-import userService from "../../user/service/user.service";
+import CaseparticipantsService from "../../case-participants/service/case-participants.service";
 
 class CaseService extends BaseService<CaseDocument> {
   protected readonly repository: typeof CaseRepository;
+
+  protected readonly caseParticipantsService: typeof CaseparticipantsService;
   constructor(repository: typeof CaseRepository) {
     super(repository);
     this.repository = repository;
+    this.caseParticipantsService = CaseparticipantsService;
   }
 
   /**
@@ -29,10 +31,40 @@ class CaseService extends BaseService<CaseDocument> {
     const { participants, ...caseData } = payload;
 
     const newCaseId = new Types.ObjectId();
-    console.log(newCaseId);
+
+    // Instead of checking for exact participants match, check for cases with any of the same participants
+    const complainantIds = participants.complainants;
+    const respondentIds = participants.respondents;
+
+    // Check if there are any cases with the same nature of dispute and participants
+    const existingCaseParticipants =
+      await this.caseParticipantsService.getAllByFiltersService({
+        $or: [
+          { "complainants.resident": { $in: complainantIds } },
+          { "respondents.resident": { $in: respondentIds } },
+        ],
+      });
+
+    if (existingCaseParticipants.length > 0) {
+      const existingCase = await this.repository.findAll({
+        natureOfDispute: caseData.natureOfDispute,
+        $or: [
+          { "disputeDetails.type": caseData.disputeDetails.type },
+          {
+            "disputeDetails.incidentDate": caseData.disputeDetails.incidentDate,
+          },
+          { "disputeDetails.location": caseData.disputeDetails.location },
+        ],
+        isDeleted: false,
+      });
+
+      if (existingCase.length > 0) {
+        throw new BadRequestError("Case already exists");
+      }
+    }
 
     const newParticipants =
-      await caseParticipantsService.createCaseParticipants({
+      await this.caseParticipantsService.createCaseParticipants({
         case: newCaseId,
         participants,
       });

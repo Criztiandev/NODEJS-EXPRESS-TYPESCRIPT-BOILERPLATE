@@ -44,6 +44,11 @@ const caseSchema = new Schema(
     },
 
     disputeDetails: {
+      type: {
+        type: String,
+        enum: ["Civil Case", "Criminal Case"],
+        default: "Civil Case",
+      },
       description: {
         type: String,
         required: true,
