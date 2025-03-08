@@ -102,7 +102,7 @@ export class AccountService extends BaseService<AccountDocument> {
       refreshToken: "",
     } as Partial<AccountDocument>);
 
-    return updatedUser?._id?.toString() ?? null;
+    return updatedUser._id ?? null;
   }
 
   /**
@@ -168,7 +168,7 @@ export class AccountService extends BaseService<AccountDocument> {
       new Date(user.deletedAt).getTime() + 7 * 24 * 60 * 60 * 1000 < Date.now();
 
     if (isDeletedOn7DaysAgo) {
-      await this.accountRepository.hardDeleteById(String(user._id));
+      await this.accountRepository.hardDeleteById(user._id);
       throw new BadRequestError("Account is already deleted");
     }
 

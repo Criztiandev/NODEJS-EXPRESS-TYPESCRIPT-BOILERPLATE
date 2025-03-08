@@ -110,7 +110,7 @@ export class AccountRepository extends BaseRepository<AccountDocument> {
       .lean();
 
     if (!user) {
-      throw new NotFoundError(`User with id ${String(id)} not found`);
+      throw new NotFoundError(`User not found`);
     }
 
     return user;

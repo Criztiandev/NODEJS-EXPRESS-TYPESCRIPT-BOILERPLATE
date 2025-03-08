@@ -2,6 +2,10 @@ import { Request, Response, NextFunction } from "express";
 import tokenUtils from "../../utils/token.utils";
 import userModel from "../../model/user.model";
 import { BadRequestError } from "../../utils/error.utils";
+import {
+  AccessTokenPayload,
+  RefreshTokenPayload,
+} from "../../feature/auth/interface/auth/token.interface";
 
 export class AuthenticationError extends Error {
   constructor(message: string) {
@@ -53,27 +57,29 @@ async function verifySessionInStore(req: Request): Promise<void> {
  */
 async function handleTokenRefresh(req: Request): Promise<void> {
   const { payload: accessTokenPayload, expired: accessTokenExpired } =
-    tokenUtils.verifyToken(req.session.accessToken);
+    tokenUtils.verifyToken<AccessTokenPayload>(req.session.accessToken);
 
-  if (!accessTokenExpired) return;
+  if (!accessTokenExpired || !accessTokenPayload) {
+    return;
+  }
 
-  const user = await userModel.findById(accessTokenPayload?.userId || "");
+  const user = await userModel.findById(accessTokenPayload?.UID || "");
   if (!user?.refreshToken) {
     throw new BadRequestError("User or refresh token not found");
   }
 
   const { payload: refreshTokenPayload, expired: refreshTokenExpired } =
-    tokenUtils.verifyToken(user.refreshToken);
+    tokenUtils.verifyToken<RefreshTokenPayload>(user.refreshToken);
 
   if (refreshTokenExpired) {
     await destroySession(req);
     return;
   }
 
-  if (refreshTokenPayload?.usedId === accessTokenPayload?.userId) {
+  if (refreshTokenPayload?.UID === accessTokenPayload?.UID) {
     // Generate new access token
     const newAccessToken = tokenUtils.generateToken({
-      userId: accessTokenPayload?.userId,
+      UID: accessTokenPayload?.UID,
     });
     req.session.accessToken = newAccessToken;
   }

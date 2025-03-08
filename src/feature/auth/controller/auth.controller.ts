@@ -16,11 +16,11 @@ class AuthController {
   @AsyncHandler()
   @ZodValidation(RegisterValidation)
   async register(req: Request, res: Response, next: NextFunction) {
-    const { userId } = await authService.register(req.body);
+    const { UID } = await authService.register(req.body);
 
     res.status(201).json({
       payload: {
-        UID: userId,
+        UID,
       },
       message: "Registered Successfully",
     });

@@ -2,7 +2,6 @@ import { ObjectId, Schema } from "mongoose";
 import { BadRequestError } from "../../../utils/error.utils";
 import { generateOTP as generateOTPUtils } from "../../../utils/generate.utilts";
 import OtpRepository from "../repository/otp.repository";
-import tokenUtils from "../../../utils/token.utils";
 
 class OTPService {
   private readonly otpRepository: typeof OtpRepository;

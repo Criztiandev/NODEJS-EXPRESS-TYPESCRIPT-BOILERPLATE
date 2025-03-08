@@ -98,7 +98,7 @@ export abstract class BaseService<T extends Document & SoftDeleteFields> {
    * @param payload - The payload to create the item with
    * @returns The item created
    */
-  async createService(payload: Partial<T>): Promise<T> {
+  async createService(payload: Partial<T>) {
     const sanitizedPayload = this.sanitizePayload(payload);
     return this.repository.create(sanitizedPayload);
   }

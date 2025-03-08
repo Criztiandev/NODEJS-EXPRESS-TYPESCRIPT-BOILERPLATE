@@ -11,7 +11,6 @@ import {
 } from "../../../decorator/routes/protected-routes.decorator";
 import { BadRequestError } from "../../../utils/error.utils";
 import tokenUtils from "../../../utils/token.utils";
-import { ObjectId } from "mongoose";
 import UpdateAccountValidation from "../validation/update-profile.validation";
 import OtpValidation from "../../auth/validation/otp.validation";
 import ResetPasswordValidation from "../validation/reset-password.validation";

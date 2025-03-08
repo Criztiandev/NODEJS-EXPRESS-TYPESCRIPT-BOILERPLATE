@@ -1,9 +1,8 @@
 // user.interface.ts
-import { Document, ObjectId } from "mongoose";
+import { Document, ObjectId, Schema } from "mongoose";
 import { SoftDeleteFields } from "../../../core/base/repository/base.repository";
 
-export interface User {
-  _id?: ObjectId | string;
+export interface UserAttributes {
   firstName: string;
   middleName?: string;
   lastName: string;
@@ -25,6 +24,6 @@ export interface User {
 
 // Make sure UserDocument extends both Document and SoftDeleteFields
 export interface UserDocument
-  extends Omit<User, "_id">,
-    Document,
+  extends UserAttributes,
+    Document<Schema.Types.ObjectId>,
     SoftDeleteFields {}

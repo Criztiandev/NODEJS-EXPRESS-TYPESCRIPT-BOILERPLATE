@@ -248,7 +248,7 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
   protected async performHardDelete(
     filters: FilterQuery<T>,
     options: { batch: boolean; select?: string } = { batch: false }
-  ): Promise<T | null | any> {
+  ): Promise<any> {
     return options.batch
       ? this.model.deleteMany(filters)
       : this.model
@@ -360,7 +360,7 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
   protected async performSoftDelete(
     filters: FilterQuery<T>,
     options: UpdateQueryOptions = {}
-  ): Promise<T | null | any> {
+  ): Promise<any> {
     const update = {
       isDeleted: true,
       deletedAt: new Date(),
