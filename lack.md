@@ -204,3 +204,13 @@ function createUser(payload: User) {
         populate: ['complainants.resident', 'respondents.resident', 'witnesses.resident']
       }
     }) as CaseDocumentWithParticipants;
+
+
+38. The Filter query is broken
+39. You should not perform thjis http://localhost:8000/api/case/all?complainant.resident.id=67b1528d88a758d471c21e36 its a security risk
+
+
+40. The pagination is not working
+
+
+

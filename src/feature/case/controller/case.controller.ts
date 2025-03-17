@@ -6,7 +6,7 @@ import { CaseDocument } from "../interface/case.interface";
 import CaseService from "../service/case.service";
 import { CaseWithParticipantsValidation } from "../validation/case-with-participants.validation";
 import DocumentsService from "../../documents/service/documents.service";
-import { ObjectId, Schema, Types } from "mongoose";
+import { ObjectId } from "mongoose";
 class CaseController extends BaseController<CaseDocument> {
   protected service: typeof CaseService;
   protected documentsService: typeof DocumentsService;
@@ -19,6 +19,26 @@ class CaseController extends BaseController<CaseDocument> {
 
   protected getResourceName(): string {
     return "Case";
+  }
+
+  @AsyncHandler()
+  async getAllMyCases(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    const { type = "complainant" } = req.query;
+    const user = req.session.user;
+
+    const cases = await this.service.getUserPaginatedCases(
+      user._id,
+      type as "complainant" | "respondent"
+    );
+
+    res.status(200).json({
+      payload: cases,
+      message: `${this.getResourceName()} retrieved successfully`,
+    });
   }
 
   @AsyncHandler()

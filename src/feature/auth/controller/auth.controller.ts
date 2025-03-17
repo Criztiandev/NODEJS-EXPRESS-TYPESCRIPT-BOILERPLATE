@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from "express";
 import { AsyncHandler, ZodValidation } from "../../../utils/decorator.utils";
 import authService from "../service/auth.service";
 import accountService from "../../account/service/account.service";
-import config from "../../../config/config";
 import tokenUtils from "../../../utils/token.utils";
 import otpService from "../service/otp.service";
 import LoginValidation from "../validation/login.validation";
@@ -11,6 +10,8 @@ import ForgotPasswordValidation from "../validation/forgot-password.validation";
 import VerifyEmailValidation from "../validation/verify-email.validation";
 import OtpValidation from "../validation/otp.validation";
 import { OtpTokenPayload } from "../interface/otp/otp.interface";
+import ResetPasswordValidation from "../../account/validation/reset-password.validation";
+import { BadRequestError } from "../../../utils/error.utils";
 
 class AuthController {
   @AsyncHandler()
@@ -53,7 +54,7 @@ class AuthController {
 
     res.status(200).json({
       payload: {
-        link: `${config.BACKEND_URL}/auth/checkpoint/account/verify/${token}`,
+        link: `/forgot-password/checkpoint/${token}`,
       },
       message: "Forgot password successful",
     });
@@ -88,6 +89,26 @@ class AuthController {
     res.status(200).json({
       payload: { link },
       message: "Account verified successfully",
+    });
+  }
+
+  @AsyncHandler()
+  @ZodValidation(ResetPasswordValidation)
+  async resetPassword(req: Request, res: Response, next: NextFunction) {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    const { payload } = tokenUtils.verifyToken<OtpTokenPayload>(token);
+
+    if (!payload) {
+      throw new BadRequestError("Invalid token");
+    }
+
+    const result = await accountService.resetPassword(payload.UID, password);
+
+    res.status(200).json({
+      payload: result,
+      message: "Account restored successfully",
     });
   }
 }

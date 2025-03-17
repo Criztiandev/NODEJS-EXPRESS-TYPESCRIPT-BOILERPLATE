@@ -124,8 +124,6 @@ export abstract class BaseRepository<T extends Document & SoftDeleteFields> {
   ): Promise<PaginatedResponse<T>> {
     const { effectivePage, effectiveLimit, skip, sort } =
       this.buildPaginationParams(pagination);
-
-    console.log(filters);
     const [docs, total] = await Promise.all([
       this.buildQuery(filters, { ...options, sort })
         .skip(skip)

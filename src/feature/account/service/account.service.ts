@@ -209,9 +209,6 @@ export class AccountService extends BaseService<AccountDocument> {
     };
   }
 
-  /**
-   * Verify account and generate reset password token
-   */
   async verifyAccount(email: string) {
     const user = await this.accountRepository.findByEmail(email);
     if (!user) {
@@ -224,10 +221,9 @@ export class AccountService extends BaseService<AccountDocument> {
     );
 
     return {
-      link: `${config.BACKEND_URL}/account/reset-password/${token}`,
+      link: `/forgot-password/checkpoint/change-password/${token}`,
     };
   }
 }
 
-// Initialize with repository
 export default new AccountService(accountRepository);

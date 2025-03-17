@@ -1,7 +1,8 @@
-import { ObjectId, Types } from "mongoose";
+import { ObjectId, Schema, Types } from "mongoose";
 import { BaseService } from "../../../core/base/service/base.service";
 import { BadRequestError } from "../../../utils/error.utils";
 import {
+  Case,
   CaseDocument,
   CaseWithParticipants,
 } from "../interface/case.interface";
@@ -80,6 +81,26 @@ class CaseService extends BaseService<CaseDocument> {
     }
 
     return newCase;
+  }
+
+  async getUserPaginatedCases(
+    UID: Types.ObjectId,
+    type: "respondent" | "complainant"
+  ): Promise<Case[]> {
+    const filterQuery = {
+      [`${type}s.resident`]: UID,
+    };
+
+    const participants =
+      await this.caseParticipantsService.getAllByFiltersService(filterQuery);
+
+    const caseIds = participants.map((participant) => participant.case);
+
+    const cases = await this.repository.findAll({
+      _id: { $in: caseIds },
+    });
+
+    return cases;
   }
 
   // Helper function to generate case number
