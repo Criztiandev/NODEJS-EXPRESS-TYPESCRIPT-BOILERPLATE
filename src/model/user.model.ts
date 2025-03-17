@@ -15,22 +15,38 @@ const userSchema = new Schema<UserDocument>(
       type: String,
       required: true,
     },
+
+    fullAddress: {
+      street: String,
+      block: String,
+      barangay: {
+        type: Schema.Types.ObjectId,
+        ref: "Barangay",
+        required: true,
+      },
+    },
+
     email: {
       type: String,
       required: true,
       unique: true,
+      trim: true,
+      lowercase: true,
+    },
+    password: {
+      type: String,
+      required: true,
     },
     phoneNumber: {
       type: String,
       required: true,
       unique: true,
     },
-    password: {
+
+    type: {
       type: String,
-      required: true,
-    },
-    address: {
-      type: String,
+      enum: ["resident", "barangayOfficial", "dilgOfficial", "admin"],
+      default: "resident",
       required: true,
     },
     role: {
@@ -39,9 +55,13 @@ const userSchema = new Schema<UserDocument>(
       default: "user",
       enum: ["user", "admin", "superadmin"],
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
     isDeleted: {
       type: Boolean,
-      required: true,
+      required: false,
       default: false,
     },
     deletedAt: {
@@ -53,12 +73,30 @@ const userSchema = new Schema<UserDocument>(
   { timestamps: true }
 );
 
-// Pre-middleware with proper typing
 userSchema.pre(/^find/, function (this: Query<any, UserDocument>, next) {
-  if (!("isDeleted" in this.getFilter())) {
+  const conditions = this.getFilter();
+  if (!("isDeleted" in conditions)) {
     this.where({ isDeleted: false });
   }
+
+  // Dont get the admin and superadmin and even in the count of d
+  if (
+    this.getFilter().role !== "admin" &&
+    this.getFilter().role !== "superadmin"
+  ) {
+    this.where({ role: { $nin: ["admin", "super-admin"] } });
+  }
+
   next();
 });
+
+// middleware to exclude the admin and superadmin in the count of documents and isDeleted is false
+userSchema.pre(
+  /^countDocuments/,
+  function (this: Query<any, UserDocument>, next) {
+    this.where({ role: { $nin: ["admin", "super-admin"] }, isDeleted: true });
+    next();
+  }
+);
 
 export default model<UserDocument>("User", userSchema);

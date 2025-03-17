@@ -11,10 +11,10 @@ import {
 } from "../../../decorator/routes/protected-routes.decorator";
 import { BadRequestError } from "../../../utils/error.utils";
 import tokenUtils from "../../../utils/token.utils";
-import { ObjectId } from "mongoose";
 import UpdateAccountValidation from "../validation/update-profile.validation";
 import OtpValidation from "../../auth/validation/otp.validation";
 import ResetPasswordValidation from "../validation/reset-password.validation";
+import { OtpTokenPayload } from "../../auth/interface/otp/otp.interface";
 
 @ProtectedController()
 class AccountController {
@@ -84,12 +84,13 @@ class AccountController {
     const { token } = req.params;
     const { password } = req.body;
 
-    const { payload } = tokenUtils.verifyToken(token);
+    const { payload } = tokenUtils.verifyToken<OtpTokenPayload>(token);
 
-    const result = await accountService.resetPassword(
-      payload.UID as ObjectId,
-      password
-    );
+    if (!payload) {
+      throw new BadRequestError("Invalid token");
+    }
+
+    const result = await accountService.resetPassword(payload.UID, password);
 
     res.status(200).json({
       payload: result,

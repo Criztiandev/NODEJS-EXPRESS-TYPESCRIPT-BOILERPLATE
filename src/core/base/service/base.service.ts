@@ -1,189 +1,298 @@
 import { FilterQuery, Document, ObjectId, SortOrder } from "mongoose";
 import { BadRequestError } from "../../../utils/error.utils";
 import {
-  PaginationParams,
   BaseRepository,
   SoftDeleteFields,
-  PaginatedResponse,
 } from "../repository/base.repository";
+import {
+  QueryOptions,
+  PaginatedResponse,
+  PaginationQueryParams,
+  ValidateOptions,
+} from "../types/query.types";
 
-export interface QueryParams extends PaginationParams {
-  search?: string;
-  sortBy?: string;
-  sortOrder?: SortOrder;
-  startDate?: string;
-  endDate?: string;
-  [key: string]: any;
+export interface ExtendedQueryOptions extends QueryOptions {
+  searchableFields?: string[];
+  defaultFilters?: FilterQuery<any>;
 }
 
-export class BaseService<T extends Document & SoftDeleteFields> {
+export abstract class BaseService<T extends Document & SoftDeleteFields> {
+  protected readonly modelName: string;
+
   constructor(protected readonly repository: BaseRepository<T>) {
     if (!repository) {
       throw new BadRequestError("Repository is required");
     }
+    this.modelName = repository.modelName;
   }
 
-  async getPaginatedItems(
-    queryParams: QueryParams,
-    searchableFields?: string[],
-    options?: {
-      select?: string;
-    }
+  /**
+   * Find paginated items
+   * @param params - The pagination query params
+   * @param options - The extended query options
+   * @returns The paginated items
+   */
+  async getPaginatedService(
+    params: PaginationQueryParams,
+    options: ExtendedQueryOptions = {}
   ): Promise<PaginatedResponse<T>> {
-    const { page, limit, search, sortBy, sortOrder, ...fieldQueries } =
-      queryParams;
-    const filters = this.buildFilters(search, fieldQueries, searchableFields);
-    const sort = this.buildSortCriteria(sortBy, sortOrder);
+    const filters = this.buildFilters(params, options);
+    const sort = this.buildSortCriteria(params);
 
-    return this.repository.findPaginated(filters, options?.select, {
-      page,
-      limit,
-      sort,
-    });
+    return this.repository.findPaginated(
+      filters,
+      { page: params.page, limit: params.limit, sort },
+      { select: options.select, populate: options.populate }
+    );
   }
 
-  async getPaginatedSoftDeletedItems(
-    queryParams: QueryParams
-  ): Promise<PaginatedResponse<T>> {
-    const { page, limit, search } = queryParams;
-    const filters = search ? this.buildSearchFilter(search) : {};
+  /**
+   * Find an item by id
+   * @param id - The id of the item to find
+   * @param options - The query options
+   * @returns The item found
+   */
+  async getByIdService(
+    id: ObjectId | string,
+    options: QueryOptions = {}
+  ): Promise<T> {
+    const item = await this.repository.findById(id, options);
 
-    return this.repository.findPaginatedSoftDeleted(filters, undefined, {
-      page,
-      limit,
-    });
-  }
-
-  async getItem(id: ObjectId | string, select?: string): Promise<T> {
-    const item = await this.repository.findById(id);
     if (!item) {
-      throw new BadRequestError("Item not found");
+      throw new BadRequestError(`${this.modelName} not found`);
     }
     return item;
   }
 
-  async getSoftDeletedItem(id: ObjectId | string): Promise<T> {
-    const item = await this.repository.findById(id);
-    if (!item || !item.isDeleted) {
-      throw new BadRequestError("Deleted item not found");
+  async getAllByIdsService(ids: ObjectId[] | string[]): Promise<T[]> {
+    const items = await this.repository.findAll({ _id: { $in: ids } });
+    return items;
+  }
+
+  async getAllByFiltersService(filters: FilterQuery<T>): Promise<T[]> {
+    const items = await this.repository.findByFilters(filters);
+    return items ?? [];
+  }
+
+  /**
+   * Find a soft deleted item by id
+   * @param id - The id of the item to find
+   * @param options - The query options
+   * @returns The item found
+   */
+  async getSoftDeletedByIdService(
+    id: ObjectId | string,
+    options: QueryOptions = {}
+  ): Promise<T> {
+    const item = await this.repository.findSoftDeletedById(id, options);
+
+    if (!item) {
+      throw new BadRequestError(`${this.modelName} not found`);
     }
+
     return item;
   }
 
-  async getItemsByFilters(filters: FilterQuery<T>): Promise<T[]> {
-    return this.repository.findAll(filters);
-  }
-
-  async createItem(payload: Partial<T>): Promise<T> {
-    if (payload._id) {
-      const existing = await this.repository.findById(payload._id as ObjectId);
-      if (existing) {
-        throw new BadRequestError("Item already exists");
-      }
-    }
-
+  /**
+   * Create an item
+   * @param payload - The payload to create the item with
+   * @returns The item created
+   */
+  async createService(payload: Partial<T>) {
     const sanitizedPayload = this.sanitizePayload(payload);
     return this.repository.create(sanitizedPayload);
   }
 
-  async updateItem(id: ObjectId | string, payload: Partial<T>): Promise<T> {
-    const item = await this.repository.findById(id);
-    if (!item) {
-      throw new BadRequestError("Item not found");
-    }
-
+  /**
+   * Update an item
+   * @param id - The id of the item to update
+   * @param payload - The payload to update the item with
+   * @param options - The query options
+   * @returns The item updated
+   */
+  async updateService(
+    id: ObjectId | string,
+    payload: Partial<T>,
+    options: QueryOptions = {}
+  ): Promise<T> {
     const sanitizedPayload = this.sanitizePayload(payload);
-    const updated = await this.repository.updateByFilters(
+    const updated = await this.repository.update(
       { _id: id } as FilterQuery<T>,
-      sanitizedPayload
+      sanitizedPayload,
+      { select: options.select }
     );
 
     if (!updated) {
-      throw new BadRequestError("Failed to update item");
+      throw new BadRequestError(`Failed to update ${this.modelName}`);
     }
-
     return updated;
   }
 
-  async batchUpdateItemsById(
+  /**
+   * Batch update items
+   * @param ids - The ids of the items to update
+   * @param payload - The payload to update the items with
+   */
+  async batchUpdateService(
     ids: (ObjectId | string)[],
     payload: Partial<T>
-  ): Promise<any> {
-    const items = await this.repository.findAll({
-      _id: { $in: ids },
-    } as FilterQuery<T>);
+  ): Promise<void> {
+    const items = await this.repository.findAll({ _id: { $in: ids } });
     if (items.length !== ids.length) {
       throw new BadRequestError("Some items not found");
     }
 
     const sanitizedPayload = this.sanitizePayload(payload);
-    return this.repository.batchUpdateByIds(ids, sanitizedPayload);
+    await this.repository.batchUpdateByIds(ids, sanitizedPayload);
   }
 
-  async softDeleteItem(id: ObjectId | string): Promise<T> {
-    const item = await this.repository.findById(id);
-    if (!item) {
-      throw new BadRequestError("Item not found");
+  /**
+   * Soft delete an item
+   * @param id - The id of the item to soft delete
+   */
+  async softDeleteService(id: ObjectId | string): Promise<void> {
+    const item = await this.validateItemExists({ _id: id }, { isExist: false });
+
+    if (item.isDeleted) {
+      throw new BadRequestError(`${this.modelName} is deleted`);
     }
 
-    const deleted = await this.repository.softDeleteById(id);
+    const deleted = await this.repository.softDeleteById(id as ObjectId);
+
     if (!deleted) {
-      throw new BadRequestError("Failed to delete item");
+      throw new BadRequestError(`Failed to delete ${this.modelName}`);
     }
-
-    return deleted;
   }
 
-  async batchSoftDeleteItems(ids: (ObjectId | string)[]): Promise<any> {
-    const items = await this.repository.findAll({
-      _id: { $in: ids },
-    } as FilterQuery<T>);
+  /**
+   * Batch soft delete items
+   * @param ids - The ids of the items to soft delete
+   */
+  async batchSoftDeleteService(ids: (ObjectId | string)[]): Promise<void> {
+    const items = await this.repository.findAll({ _id: { $in: ids } });
     if (items.length !== ids.length) {
       throw new BadRequestError("Some items not found");
     }
-    return this.repository.batchSoftDelete(ids);
+    await this.repository.batchSoftDelete(ids);
   }
 
-  async restoreSoftDeletedItem(id: ObjectId | string): Promise<any> {
-    const item = await this.repository.findById(id);
-    if (!item || !item.isDeleted) {
-      throw new BadRequestError("Deleted item not found");
-    }
-    return this.repository.restore({ _id: id } as FilterQuery<T>);
-  }
-
-  async hardDeleteItem(id: ObjectId | string): Promise<T | null> {
-    const item = await this.repository.findById(id);
+  /**
+   * Hard delete an item
+   * @param id - The id of the item to hard delete
+   */
+  async hardDeleteService(id: ObjectId | string): Promise<void> {
+    const item = await this.repository.findSoftDeletedById(id);
     if (!item) {
-      throw new BadRequestError("Item not found");
+      throw new BadRequestError(`${this.modelName} not found in trash`);
     }
-    return this.repository.hardDeleteById(id);
+    await this.repository.hardDeleteById(id);
   }
 
-  private buildFilters(
-    search?: string,
-    fieldQueries: Record<string, any> = {},
-    searchableFields?: string[]
-  ): FilterQuery<T> {
-    const filters: FilterQuery<T> = { isDeleted: false };
+  /**
+   * Restore an item
+   * @param id - The id of the item to restore
+   */
+  async restoreService(id: ObjectId | string): Promise<void> {
+    const item = await this.repository.findSoftDeletedById(id);
+    if (!item) {
+      throw new BadRequestError(`${this.modelName} not found in trash`);
+    }
+    await this.repository.restoreById(id, { select: "_id" });
+  }
 
-    // Add search filter
+  async validateItemExists(
+    filters: FilterQuery<T>,
+    options: ValidateOptions = {}
+  ): Promise<T> {
+    const item = await this.repository.findByFilters(filters, {
+      select: "_id",
+      ...options,
+    });
+
+    if (options.isExist && item) {
+      throw new BadRequestError(
+        options.errorMessage ?? `${this.modelName} already exists`
+      );
+    }
+
+    if (!options.isExist && !item) {
+      throw new BadRequestError(
+        options.errorMessage ?? `${this.modelName} not found`
+      );
+    }
+
+    return item as unknown as T;
+  }
+
+  async validateMultipleItems<T>(
+    filters: FilterQuery<T>,
+    options: ValidateOptions = {
+      errorMessage: `${this.modelName} not found`,
+      isExist: false,
+    }
+  ): Promise<T[]> {
+    const items = await this.repository.findAll(filters, {
+      select: "_id",
+      ...options,
+    });
+
+    if (options.isExist && items.length > 0) {
+      throw new BadRequestError(
+        options.errorMessage ?? `${this.modelName} already exists`
+      );
+    }
+
+    if (!options.isExist && items.length <= 0) {
+      throw new BadRequestError(
+        options.errorMessage ?? `${this.modelName} not found`
+      );
+    }
+    return items as unknown as T[];
+  }
+
+  /**
+   * Validate if an item is soft deleted
+   * @param id - The id of the item to validate
+   * @returns The item found
+   */
+  async validateSoftDeleted(id: ObjectId | string): Promise<T> {
+    const item = await this.repository.findSoftDeletedById(id);
+    if (!item) {
+      throw new BadRequestError(`${this.modelName} not found in trash`);
+    }
+    return item;
+  }
+
+  /**
+   * Build filters
+   * @param params - The pagination query params
+   * @param options - The extended query options
+   * @returns The filters
+   */
+  protected buildFilters(
+    params: Partial<PaginationQueryParams>,
+    options: ExtendedQueryOptions = {}
+  ): FilterQuery<T> {
+    const { search, startDate, endDate, ...fieldQueries } = params;
+    const { searchableFields, defaultFilters } = options;
+    const filters: FilterQuery<T> = { ...defaultFilters };
+
+    // Search filter
     if (search && searchableFields?.length) {
       filters.$or = searchableFields.map((field) => ({
         [field]: { $regex: search, $options: "i" },
       })) as unknown as FilterQuery<T>[];
     }
 
-    // Add date range filters
-    const { startDate, endDate, ...otherQueries } = fieldQueries;
+    // Date range filter
     if (startDate || endDate) {
       (filters as any).createdAt = {};
       if (startDate) (filters as any).createdAt.$gte = new Date(startDate);
       if (endDate) (filters as any).createdAt.$lte = new Date(endDate);
     }
 
-    // Add other field filters
-    Object.entries(otherQueries).forEach(([key, value]) => {
+    // Field filters
+    Object.entries(fieldQueries).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== "") {
         (filters as any)[key] = value;
       }
@@ -192,33 +301,35 @@ export class BaseService<T extends Document & SoftDeleteFields> {
     return filters;
   }
 
-  private buildSearchFilter(search: string): FilterQuery<T> {
-    return {
-      isDeleted: true,
-      $or: [
-        { title: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-      ],
-    } as FilterQuery<T>;
-  }
-
-  private buildSortCriteria(
-    sortBy?: string,
-    sortOrder?: SortOrder
+  /**
+   * Build sort criteria
+   * @param params - The pagination query params
+   * @returns The sort criteria
+   */
+  protected buildSortCriteria(
+    params: Partial<PaginationQueryParams>
   ): Record<string, SortOrder> {
-    if (sortBy) {
-      return { [sortBy]: sortOrder ?? "asc" };
-    }
-    return { createdAt: -1 };
+    const { sortBy, sortOrder } = params;
+    return sortBy ? { [sortBy]: sortOrder ?? "asc" } : { createdAt: -1 };
   }
 
-  private sanitizePayload(payload: Partial<T>): Partial<T> {
+  /**
+   * Sanitize payload
+   * @param payload - The payload to sanitize
+   * @returns The sanitized payload
+   */
+  protected sanitizePayload(
+    payload: Partial<T>,
+    fieldsToRemove: string[] = [
+      "_id",
+      "createdAt",
+      "updatedAt",
+      "isDeleted",
+      "deletedAt",
+    ]
+  ): Partial<T> {
     const sanitized = { ...payload } as any;
-    delete sanitized._id;
-    delete sanitized.createdAt;
-    delete sanitized.updatedAt;
-    delete sanitized.isDeleted;
-    delete sanitized.deletedAt;
+    fieldsToRemove.forEach((field) => delete sanitized[field]);
     return sanitized;
   }
 }

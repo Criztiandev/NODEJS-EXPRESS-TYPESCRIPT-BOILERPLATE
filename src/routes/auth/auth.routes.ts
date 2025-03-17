@@ -8,6 +8,10 @@ router.post("/forgot-password", authController.forgotPassword);
 
 router.post("/checkpoint/account/verify/:token", authController.verifyAccount);
 router.post(
+  "/checkpoint/account/reset-password/:token",
+  authController.resetPassword
+);
+router.post(
   "/checkpoint/deleted-account/verify/:token",
   authController.verifyDeletedAccount
 );

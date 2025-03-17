@@ -2,11 +2,11 @@ import { FilterQuery, Model, ObjectId, Schema, UpdateQuery } from "mongoose";
 import { NotFoundError } from "../../../utils/error.utils";
 import {
   BaseRepository,
-  PaginationParams,
   SoftDeleteFields,
 } from "../../../core/base/repository/base.repository";
 import { UserDocument } from "../../user/interface/user.interface";
 import userModel from "../../../model/user.model";
+import { PaginationParams } from "../../../core/base/types/query.types";
 
 export interface AccountDocument extends UserDocument, SoftDeleteFields {
   email: string;
@@ -39,6 +39,7 @@ export class AccountRepository extends BaseRepository<AccountDocument> {
     email: string,
     select: string = AccountRepository.DEFAULT_SELECT
   ) {
+    console.log(email);
     return this.model
       .findOne({ email, isDeleted: false })
       .select(select)
@@ -53,38 +54,6 @@ export class AccountRepository extends BaseRepository<AccountDocument> {
     select: string = AccountRepository.DEFAULT_SELECT
   ) {
     return this.model.findOne({ email, isDeleted: true }).select(select).lean();
-  }
-
-  /**
-   * Find all with advanced options
-   */
-  async findAllWithOptions(options?: FindByFilterOptions) {
-    const query = this.model.find({ isDeleted: false });
-    query.select(options?.select || AccountRepository.DEFAULT_SELECT);
-
-    if (options?.sort) {
-      query.sort(options.sort);
-    }
-
-    const { effectivePage, effectiveLimit, skip } =
-      this.buildPaginationParams(options);
-
-    query.skip(skip).limit(effectiveLimit);
-
-    const [users, total] = await Promise.all([
-      query.lean(),
-      this.model.countDocuments(query.getQuery()),
-    ]);
-
-    return {
-      data: users,
-      pagination: {
-        total,
-        page: effectivePage,
-        limit: effectiveLimit,
-        pages: Math.ceil(total / effectiveLimit),
-      },
-    };
   }
 
   /**
@@ -141,7 +110,7 @@ export class AccountRepository extends BaseRepository<AccountDocument> {
       .lean();
 
     if (!user) {
-      throw new NotFoundError(`User with id ${String(id)} not found`);
+      throw new NotFoundError(`User not found`);
     }
 
     return user;

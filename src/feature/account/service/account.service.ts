@@ -3,19 +3,21 @@ import config from "../../../config/config";
 import EncryptionUtils from "../../../utils/encryption.utils";
 import { BadRequestError, UnauthorizedError } from "../../../utils/error.utils";
 import tokenUtils from "../../../utils/token.utils";
-import otpService from "../../auth/service/otp.service";
 import { BaseService } from "../../../core/base/service/base.service";
 import accountRepository, {
   AccountRepository,
   AccountDocument,
 } from "../repository/account.repository";
-
+import OtpService from "../../auth/service/otp.service";
+import { OtpTokenPayload } from "../../auth/interface/otp/otp.interface";
 export class AccountService extends BaseService<AccountDocument> {
   private readonly accountRepository: AccountRepository;
+  private readonly otpService: typeof OtpService;
 
   constructor(repository: AccountRepository) {
     super(repository);
     this.accountRepository = repository;
+    this.otpService = OtpService;
   }
 
   /**
@@ -44,10 +46,10 @@ export class AccountService extends BaseService<AccountDocument> {
    * Get user profile utilizing repository's findById with select
    */
   async getUserProfile(id: string) {
-    const user = await this.accountRepository.findById(
-      id,
-      "-password -refreshToken -isDeleted -deletedAt -role -updatedAt -createdAt -__v"
-    );
+    const user = await this.accountRepository.findById(id, {
+      select:
+        "-password -refreshToken -isDeleted -deletedAt -role -updatedAt -createdAt -__v",
+    });
     if (!user) {
       throw new BadRequestError("User not found");
     }
@@ -62,7 +64,9 @@ export class AccountService extends BaseService<AccountDocument> {
       throw new BadRequestError("User ID is required");
     }
 
-    const user = await this.accountRepository.findById(id, "_id role");
+    const user = await this.accountRepository.findById(id, {
+      select: "_id role",
+    });
 
     if (!user) {
       throw new BadRequestError("User not found");
@@ -98,14 +102,16 @@ export class AccountService extends BaseService<AccountDocument> {
       refreshToken: "",
     } as Partial<AccountDocument>);
 
-    return updatedUser?._id?.toString() ?? null;
+    return updatedUser._id ?? null;
   }
 
   /**
    * Reset password with validation and hashing
    */
   async resetPassword(UID: ObjectId, newPassword: string) {
-    const user = await this.accountRepository.findById(UID, "password");
+    const user = await this.accountRepository.findById(UID, {
+      select: "password",
+    });
 
     if (!user) {
       throw new BadRequestError("User not found");
@@ -143,10 +149,14 @@ export class AccountService extends BaseService<AccountDocument> {
    * Restore account with OTP validation
    */
   async restoreAccount(token: string, otp: string) {
-    const { payload } = tokenUtils.verifyToken(token);
+    const { payload } = tokenUtils.verifyToken<OtpTokenPayload>(token);
+
+    if (!payload) {
+      throw new BadRequestError("Invalid token");
+    }
 
     const user = await this.accountRepository.findDeletedAccountByEmail(
-      payload.email
+      payload?.email
     );
 
     if (!user) {
@@ -158,11 +168,11 @@ export class AccountService extends BaseService<AccountDocument> {
       new Date(user.deletedAt).getTime() + 7 * 24 * 60 * 60 * 1000 < Date.now();
 
     if (isDeletedOn7DaysAgo) {
-      await this.accountRepository.hardDeleteById(String(user._id));
+      await this.accountRepository.hardDeleteById(user._id);
       throw new BadRequestError("Account is already deleted");
     }
 
-    const isValidOtp = await otpService.verifyOTP(payload.UID, otp);
+    const isValidOtp = await this.otpService.verifyOTP(payload.UID, otp);
 
     if (!isValidOtp) {
       throw new BadRequestError("Invalid OTP");
@@ -192,16 +202,13 @@ export class AccountService extends BaseService<AccountDocument> {
       { email: email, UID: user._id },
       "1h"
     );
-    await otpService.generateOTP({ email, UID: user._id as ObjectId });
+    await this.otpService.generateOTP({ email, UID: user._id as ObjectId });
 
     return {
       link: `${config.BACKEND_URL}/api/account/restore/${token}`,
     };
   }
 
-  /**
-   * Verify account and generate reset password token
-   */
   async verifyAccount(email: string) {
     const user = await this.accountRepository.findByEmail(email);
     if (!user) {
@@ -214,10 +221,9 @@ export class AccountService extends BaseService<AccountDocument> {
     );
 
     return {
-      link: `${config.BACKEND_URL}/account/reset-password/${token}`,
+      link: `/forgot-password/checkpoint/change-password/${token}`,
     };
   }
 }
 
-// Initialize with repository
 export default new AccountService(accountRepository);

@@ -2,6 +2,10 @@ import { Request, Response, NextFunction } from "express";
 import tokenUtils from "../../utils/token.utils";
 import userModel from "../../model/user.model";
 import { BadRequestError } from "../../utils/error.utils";
+import {
+  AccessTokenPayload,
+  RefreshTokenPayload,
+} from "../../feature/auth/interface/auth/token.interface";
 
 export class AuthenticationError extends Error {
   constructor(message: string) {
@@ -37,13 +41,16 @@ async function validateSession(req: Request): Promise<void> {
  * Verifies the session exists in session store
  */
 async function verifySessionInStore(req: Request): Promise<void> {
-  await new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     req.sessionStore.get(req.session.id, (err, session) => {
       if (err) {
-        console.log(err);
-        reject(new AuthenticationError(err.message));
+        console.error("Session verification error:", err);
+        return reject(new AuthenticationError(err.message));
       }
-      resolve(session);
+      if (!session) {
+        return reject(new AuthenticationError("Session not found in store"));
+      }
+      resolve();
     });
   });
 }
@@ -53,29 +60,42 @@ async function verifySessionInStore(req: Request): Promise<void> {
  */
 async function handleTokenRefresh(req: Request): Promise<void> {
   const { payload: accessTokenPayload, expired: accessTokenExpired } =
-    tokenUtils.verifyToken(req.session.accessToken);
+    tokenUtils.verifyToken<AccessTokenPayload>(req.session.accessToken);
 
-  if (!accessTokenExpired) return;
+  if (!accessTokenExpired || !accessTokenPayload) {
+    return;
+  }
 
-  const user = await userModel.findById(accessTokenPayload?.userId || "");
+  const user = await userModel.findById(accessTokenPayload?.UID || "");
   if (!user?.refreshToken) {
     throw new BadRequestError("User or refresh token not found");
   }
 
   const { payload: refreshTokenPayload, expired: refreshTokenExpired } =
-    tokenUtils.verifyToken(user.refreshToken);
+    tokenUtils.verifyToken<RefreshTokenPayload>(user.refreshToken);
 
   if (refreshTokenExpired) {
     await destroySession(req);
-    return;
+    throw new AuthenticationError("Session expired");
   }
 
-  if (refreshTokenPayload?.usedId === accessTokenPayload?.userId) {
+  if (refreshTokenPayload?.UID === accessTokenPayload?.UID) {
     // Generate new access token
     const newAccessToken = tokenUtils.generateToken({
-      userId: accessTokenPayload?.userId,
+      UID: accessTokenPayload?.UID,
     });
     req.session.accessToken = newAccessToken;
+
+    // Save the session to ensure the new token is persisted
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error("Failed to save session:", err);
+          reject(new BadRequestError("Failed to refresh token"));
+        }
+        resolve();
+      });
+    });
   }
 }
 
@@ -83,63 +103,172 @@ async function handleTokenRefresh(req: Request): Promise<void> {
  * Safely destroys the session
  */
 async function destroySession(req: Request): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     req.session.destroy((err) => {
-      if (err) reject(new BadRequestError("Failed to destroy session"));
+      if (err) {
+        console.error("Session destruction error:", err);
+        return reject(new BadRequestError("Failed to destroy session"));
+      }
       resolve();
     });
   });
 }
 
+// Symbol to mark methods as processed to avoid duplicate wrapping
+const PROTECTED_METHOD = Symbol("PROTECTED_METHOD");
+
+// Improved storage for public routes using class+method as key
+const publicRouteRegistry = new Map<string, boolean>();
+
 /**
- * Class decorator that protects routes by validating session and handling token refresh
- * @returns ClassDecorator
+ * Registers a route as public
+ */
+function registerPublicRoute(target: any, methodName: string | symbol) {
+  const key = getRouteKey(target.constructor, methodName);
+  publicRouteRegistry.set(key, true);
+}
+
+/**
+ * Checks if a route is marked as public
+ */
+function isPublicRoute(target: any, methodName: string | symbol): boolean {
+  // Handle case where target might be undefined or null
+  if (!target) {
+    return false;
+  }
+
+  // Get the constructor, handling the case where it might be a constructor function or an instance
+  let currentTarget =
+    typeof target === "function" ? target : target.constructor;
+
+  if (!currentTarget) {
+    return false;
+  }
+
+  // Check the entire prototype chain
+  while (currentTarget && currentTarget.name) {
+    const key = getRouteKey(currentTarget, methodName);
+    if (publicRouteRegistry.get(key)) {
+      return true;
+    }
+    currentTarget = Object.getPrototypeOf(currentTarget);
+  }
+
+  return false;
+}
+
+/**
+ * Generates a unique key for a route
+ */
+function getRouteKey(
+  targetConstructor: any,
+  methodName: string | symbol
+): string {
+  return `${targetConstructor.name}:${String(methodName)}`;
+}
+
+/**
+ * Enhanced ProtectedController decorator that handles inherited methods
+ * Using generic type parameter to preserve the constructor type
  */
 export function ProtectedController() {
-  return function (constructor: Function) {
-    const originalMethods = Object.getOwnPropertyDescriptors(
-      constructor.prototype
-    );
+  return function <T extends { new (...args: any[]): any }>(constructor: T): T {
+    // Process the constructor's prototype and all inherited prototypes
+    processPrototypeChain(constructor);
 
-    // Add session validation to each controller method
-    Object.entries(originalMethods).forEach(([propertyName, descriptor]) => {
+    // Return the original constructor with its type preserved
+    return constructor;
+  };
+}
+
+/**
+ * Processes all prototypes in the inheritance chain
+ */
+function processPrototypeChain(constructor: Function) {
+  let currentProto = constructor.prototype;
+
+  while (currentProto && currentProto !== Object.prototype) {
+    processPrototype(constructor, currentProto);
+    currentProto = Object.getPrototypeOf(currentProto);
+  }
+}
+
+/**
+ * Processes a single prototype, adding protection to its methods
+ */
+function processPrototype(target: any, proto: any) {
+  if (!proto) return;
+
+  try {
+    const descriptors = Object.getOwnPropertyDescriptors(proto);
+
+    Object.entries(descriptors).forEach(([methodName, descriptor]) => {
+      // Skip if not a method, is constructor, or already processed
       if (
+        !descriptor.value ||
         !(descriptor.value instanceof Function) ||
-        propertyName === "constructor"
+        methodName === "constructor" ||
+        descriptor.value[PROTECTED_METHOD] === true
       ) {
         return;
       }
 
       const originalMethod = descriptor.value;
 
-      descriptor.value = async function (
+      // Create protected version of method
+      const protectedMethod = async function (
+        this: any,
         req: Request,
         res: Response,
-        next: NextFunction
+        next?: NextFunction
       ) {
         try {
-          if (!isPublicRoute(constructor.prototype, propertyName)) {
+          // Only validate session if not marked as public
+          const isPublic = isPublicRoute(this, methodName);
+          if (!isPublic) {
             await validateSession(req);
           }
           return await originalMethod.apply(this, [req, res, next]);
         } catch (error) {
           if (error instanceof AuthenticationError) {
-            return res.status(401).json({ message: error.message });
+            return res.status(401).json({
+              error: "Authentication failed",
+              message: error.message,
+            });
           }
-          next(error);
+          // Pass other errors to Express error handler
+          if (next) {
+            return next(error);
+          }
+          // If no next function, handle error here
+          console.error(`Unhandled error in ${methodName}:`, error);
+          return res.status(500).json({
+            error: "Internal server error",
+            message: "An unexpected error occurred",
+          });
         }
       };
 
-      Object.defineProperty(constructor.prototype, propertyName, descriptor);
+      // Mark as processed to avoid re-wrapping
+      Object.defineProperty(protectedMethod, PROTECTED_METHOD, {
+        value: true,
+        writable: false,
+        configurable: false,
+      });
+
+      // Replace the original method with the protected one
+      Object.defineProperty(proto, methodName, {
+        ...descriptor,
+        value: protectedMethod,
+      });
     });
-  };
+  } catch (error) {
+    console.error("Error processing prototype:", error);
+  }
 }
 
-const publicRoutes = new WeakMap<object, Set<string | symbol>>();
-
 /**
- * Decorator to mark controller methods as public routes that bypass authentication
- * @returns MethodDecorator
+ * Decorator to mark a route as public (no authentication required)
  */
 export function PublicRoute() {
   return function (
@@ -147,23 +276,9 @@ export function PublicRoute() {
     propertyKey: string | symbol,
     descriptor: PropertyDescriptor
   ) {
-    let routes = publicRoutes.get(target);
-    if (!routes) {
-      routes = new Set();
-      publicRoutes.set(target, routes);
-    }
-    routes.add(propertyKey);
+    // Register this route as public
+    registerPublicRoute(target, propertyKey);
+
     return descriptor;
   };
-}
-
-/**
- * Helper function to check if a route is marked as public
- * @param target The class prototype
- * @param propertyKey The method name
- * @returns boolean
- */
-function isPublicRoute(target: any, propertyKey: string | symbol): boolean {
-  const routes = publicRoutes.get(target);
-  return routes ? routes.has(propertyKey) : false;
 }

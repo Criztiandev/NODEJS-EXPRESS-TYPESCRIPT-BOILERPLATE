@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from "express";
 import { AsyncHandler, ZodValidation } from "../../../utils/decorator.utils";
 import authService from "../service/auth.service";
 import accountService from "../../account/service/account.service";
-import config from "../../../config/config";
 import tokenUtils from "../../../utils/token.utils";
 import otpService from "../service/otp.service";
 import LoginValidation from "../validation/login.validation";
@@ -10,16 +9,19 @@ import RegisterValidation from "../validation/register.validation";
 import ForgotPasswordValidation from "../validation/forgot-password.validation";
 import VerifyEmailValidation from "../validation/verify-email.validation";
 import OtpValidation from "../validation/otp.validation";
+import { OtpTokenPayload } from "../interface/otp/otp.interface";
+import ResetPasswordValidation from "../../account/validation/reset-password.validation";
+import { BadRequestError } from "../../../utils/error.utils";
 
 class AuthController {
   @AsyncHandler()
   @ZodValidation(RegisterValidation)
   async register(req: Request, res: Response, next: NextFunction) {
-    const { userId } = await authService.register(req.body);
+    const { UID } = await authService.register(req.body);
 
     res.status(201).json({
       payload: {
-        UID: userId,
+        UID,
       },
       message: "Registered Successfully",
     });
@@ -28,17 +30,9 @@ class AuthController {
   @AsyncHandler()
   @ZodValidation(LoginValidation)
   async login(req: Request, res: Response, next: NextFunction) {
-    /**
-     * @swagger
-     * tags: ['Auth']
-     * summary: Authenticate user and return session tokens
-     * description: Endpoint to authenticate users using email and password, returns user role and session tokens
-     */
-
     const { email, password } = req.body;
     const { user, tokens } = await authService.login(email, password);
 
-    // Set session
     req.session.user = user;
     req.session.accessToken = tokens.accessToken;
 
@@ -60,7 +54,7 @@ class AuthController {
 
     res.status(200).json({
       payload: {
-        link: `${config.BACKEND_URL}/auth/checkpoint/account/verify/${token}`,
+        link: `/forgot-password/checkpoint/${token}`,
       },
       message: "Forgot password successful",
     });
@@ -87,14 +81,34 @@ class AuthController {
     const { token } = req.params;
     const { otp } = req.body;
 
-    const { payload } = tokenUtils.verifyToken(token);
+    const { payload } = tokenUtils.verifyToken<OtpTokenPayload>(token);
 
-    await otpService.verifyOTP(payload.UID, otp);
-    const { link } = await accountService.verifyAccount(payload.email);
+    await otpService.verifyOTP(payload?.UID ?? null, otp);
+    const { link } = await accountService.verifyAccount(payload?.email ?? "");
 
     res.status(200).json({
       payload: { link },
       message: "Account verified successfully",
+    });
+  }
+
+  @AsyncHandler()
+  @ZodValidation(ResetPasswordValidation)
+  async resetPassword(req: Request, res: Response, next: NextFunction) {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    const { payload } = tokenUtils.verifyToken<OtpTokenPayload>(token);
+
+    if (!payload) {
+      throw new BadRequestError("Invalid token");
+    }
+
+    const result = await accountService.resetPassword(payload.UID, password);
+
+    res.status(200).json({
+      payload: result,
+      message: "Account restored successfully",
     });
   }
 }

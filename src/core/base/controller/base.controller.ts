@@ -3,6 +3,7 @@ import { AsyncHandler } from "../../../utils/decorator.utils";
 import { Document } from "mongoose";
 import { BaseService } from "../service/base.service";
 import { SoftDeleteFields } from "../repository/base.repository";
+import { BadRequestError } from "../../../utils/error.utils";
 
 export abstract class BaseController<T extends Document & SoftDeleteFields> {
   constructor(protected readonly service: BaseService<T>) {
@@ -15,7 +16,11 @@ export abstract class BaseController<T extends Document & SoftDeleteFields> {
   @AsyncHandler()
   async getDetails(req: Request, res: Response, next: NextFunction) {
     const { id } = req.params;
-    const item = await this.service.getItem(id);
+    const item = await this.service.getByIdService(id);
+
+    if (!item) {
+      throw new BadRequestError(`${this.getResourceName()} not found`);
+    }
 
     res.status(200).json({
       payload: item,
@@ -26,7 +31,7 @@ export abstract class BaseController<T extends Document & SoftDeleteFields> {
   @AsyncHandler()
   async getSoftDeletedDetails(req: Request, res: Response, next: NextFunction) {
     const { id } = req.params;
-    const item = await this.service.getSoftDeletedItem(id);
+    const item = await this.service.getSoftDeletedByIdService(id);
 
     res.status(200).json({
       payload: item,
@@ -37,7 +42,9 @@ export abstract class BaseController<T extends Document & SoftDeleteFields> {
   @AsyncHandler()
   async getAll(req: Request, res: Response, next: NextFunction) {
     const queryParams = req.query;
-    const items = await this.service.getPaginatedItems(queryParams);
+    const items = await this.service.getPaginatedService(queryParams, {
+      defaultFilters: { isDeleted: false },
+    });
 
     res.status(200).json({
       payload: items,
@@ -48,7 +55,9 @@ export abstract class BaseController<T extends Document & SoftDeleteFields> {
   @AsyncHandler()
   async getAllSoftDeleted(req: Request, res: Response, next: NextFunction) {
     const queryParams = req.query;
-    const items = await this.service.getPaginatedSoftDeletedItems(queryParams);
+    const items = await this.service.getPaginatedService(queryParams, {
+      defaultFilters: { isDeleted: true },
+    });
 
     res.status(200).json({
       payload: items,
@@ -58,7 +67,7 @@ export abstract class BaseController<T extends Document & SoftDeleteFields> {
 
   @AsyncHandler()
   async create(req: Request, res: Response, next: NextFunction) {
-    const item = await this.service.createItem(req.body);
+    const item = await this.service.createService(req.body);
 
     res.status(201).json({
       payload: item,
@@ -69,7 +78,7 @@ export abstract class BaseController<T extends Document & SoftDeleteFields> {
   @AsyncHandler()
   async restoreSoftDeleted(req: Request, res: Response, next: NextFunction) {
     const { id } = req.params;
-    const item = await this.service.restoreSoftDeletedItem(id);
+    const item = await this.service.restoreService(id);
 
     res.status(200).json({
       payload: item,
@@ -80,7 +89,7 @@ export abstract class BaseController<T extends Document & SoftDeleteFields> {
   @AsyncHandler()
   async update(req: Request, res: Response, next: NextFunction) {
     const { id } = req.params;
-    const item = await this.service.updateItem(id, req.body);
+    const item = await this.service.updateService(id, req.body);
 
     res.status(200).json({
       payload: item,
@@ -91,7 +100,7 @@ export abstract class BaseController<T extends Document & SoftDeleteFields> {
   @AsyncHandler()
   async softDelete(req: Request, res: Response, next: NextFunction) {
     const { id } = req.params;
-    const item = await this.service.softDeleteItem(id);
+    const item = await this.service.softDeleteService(id);
 
     res.status(200).json({
       payload: item,
@@ -102,7 +111,7 @@ export abstract class BaseController<T extends Document & SoftDeleteFields> {
   @AsyncHandler()
   async hardDelete(req: Request, res: Response, next: NextFunction) {
     const { id } = req.params;
-    const item = await this.service.hardDeleteItem(id);
+    const item = await this.service.hardDeleteService(id);
 
     res.status(200).json({
       payload: item,

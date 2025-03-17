@@ -7,10 +7,16 @@ import {
   InputValidationError,
 } from "../../../utils/error.utils";
 import { LoginDTO } from "../interface/auth/login.interface";
-import { RegisterDTO } from "../interface/auth/register.interface";
+import {
+  RegisterReturn,
+  RegistrationCredentials,
+} from "../interface/auth/register.interface";
 import otpService from "./otp.service";
 import { ObjectId } from "mongoose";
-import { User } from "../../user/interface/user.interface";
+import {
+  RefreshTokenPayload,
+  AccessTokenPayload,
+} from "../interface/auth/token.interface";
 class AuthService {
   private readonly authRepository: typeof AuthRepository;
   private readonly accountService: typeof AccountService;
@@ -20,7 +26,9 @@ class AuthService {
     this.accountService = AccountService;
   }
 
-  async register(credentials: User): Promise<RegisterDTO> {
+  async register(
+    credentials: RegistrationCredentials
+  ): Promise<RegisterReturn> {
     const { email, password, ...userData } = credentials;
 
     if (Object.keys(credentials).length <= 0) {
@@ -36,7 +44,7 @@ class AuthService {
     const hashedPassword = await EncryptionUtils.hashPassword(password);
 
     // Create user
-    const user = await this.accountService.createItem({
+    const user = await this.accountService.createService({
       ...userData,
       email,
       password: hashedPassword,
@@ -45,11 +53,10 @@ class AuthService {
       throw new BadRequestError("Failed to create user");
     }
 
-    return { userId: user._id?.toString() ?? "" };
+    return { UID: user._id };
   }
 
   async login(email: string, password: string): Promise<LoginDTO> {
-    // Find user
     const user = await this.authRepository.findUserByEmail(email);
     if (!user) {
       throw new BadRequestError("User not found");
@@ -69,15 +76,18 @@ class AuthService {
     }
 
     // Generate tokens
-    const accessToken = tokenUtils.generateToken({ userId: user._id }, "1h");
-    const refreshToken = tokenUtils.generateToken({ userId: user._id }, "7d");
-
-    const updatedCredentials = await this.accountService.updateUser(
-      user._id as ObjectId,
-      {
-        refreshToken,
-      }
+    const accessToken = tokenUtils.generateToken<AccessTokenPayload>(
+      { UID: user._id },
+      "1h"
     );
+    const refreshToken = tokenUtils.generateToken<RefreshTokenPayload>(
+      { UID: user._id },
+      "7d"
+    );
+
+    const updatedCredentials = await this.accountService.updateUser(user._id, {
+      refreshToken,
+    });
 
     if (!updatedCredentials) {
       throw new BadRequestError("Failed to update user");

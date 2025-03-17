@@ -1,51 +1,158 @@
-import { Schema, model, Query } from "mongoose";
-import { Case, CaseDocument } from "../feature/case/interface/case.interface";
+import { Schema, model } from "mongoose";
+import { CaseDocument } from "../feature/case/interface/case.interface";
 
+const populateConfig = [
+  {
+    path: "participants",
+    select: `
+      complainants.resident complainants.status complainants.joinedDate 
+      respondents.resident respondents.status respondents.joinedDate
+      witnesses.resident witnesses.status witnesses.joinedDate
+      `,
+    options: { virtuals: true },
+  },
+  {
+    path: "mediationDetails.mediator",
+    select: "firstName lastName middleName fullAddress email phoneNumber",
+    options: { virtuals: true },
+  },
+  {
+    path: "settlement",
+    select: "settlementAmount settlementDate settlementStatus",
+    options: { virtuals: true },
+  },
+];
+
+// Main case schema
 const caseSchema = new Schema(
   {
-    title: {
+    caseNumber: {
       type: String,
-      required: true
+      required: true,
+      unique: true,
     },
-    description: {
+
+    participants: {
+      type: Schema.Types.ObjectId,
+      ref: "CaseParticipants",
+      required: true,
+    },
+
+    natureOfDispute: {
       type: String,
-      required: true
+      required: true,
     },
+
+    disputeDetails: {
+      type: {
+        type: String,
+        enum: ["Civil Case", "Criminal Case"],
+        default: "Civil Case",
+      },
+      description: {
+        type: String,
+        required: true,
+      },
+      incidentDate: {
+        type: Date,
+        required: true,
+      },
+
+      location: {
+        type: String,
+        required: false,
+        default: null,
+      },
+    },
+
+    // Mediation tracking
+    mediationDetails: {
+      mediator: {
+        type: Schema.Types.ObjectId,
+        ref: "Officials",
+      },
+      scheduledDate: Date,
+      status: {
+        type: String,
+        enum: ["scheduled", "completed", "cancelled", "rescheduled"],
+        default: "scheduled",
+      },
+      remarks: String,
+    },
+
+    // For tracking case progress
+    timeline: [
+      {
+        action: {
+          type: String,
+          required: true,
+        },
+        date: {
+          type: Date,
+          default: Date.now,
+        },
+        actor: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+        },
+        remarks: String,
+      },
+    ],
+
+    settlement: {
+      type: Schema.Types.ObjectId,
+      ref: "Settlement",
+      required: false,
+    },
+
+    // Case status and details
     status: {
       type: String,
-      required: true
-    },
-    priority: {
-      type: String,
-      required: false
-    },
-    startDate: {
-      type: Date,
-      required: true
-    },
-    isDeleted: { 
-      type: Boolean, 
       required: true,
-      default: false 
+      enum: ["filed", "under_mediation", "resolved", "escalated", "withdrawn"],
+      default: "filed",
     },
-    deletedAt: { 
-      type: Date, 
-      required: false,
-      default: null 
-    }
+
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+
+    deletedAt: Date,
   },
-  { 
+  {
     timestamps: true,
   }
 );
 
-// Middleware to exclude deleted documents by default
-caseSchema.pre(/^find/, function (this: Query<any, CaseDocument>, next) {
-  const conditions = this.getFilter();
-  if (!("isDeleted" in conditions)) {
-    this.where({ isDeleted: false });
-  }
+// Middleware to update timeline on party status changes
+caseSchema.pre("save", function (next) {
+  const modifiedPaths = this.modifiedPaths();
+
+  // Check if any party's status has changed
+  ["complainants", "respondents", "witnesses"].forEach((partyType) => {
+    if (modifiedPaths.includes(`${partyType}.$.status`)) {
+      this.timeline.push({
+        action: `${partyType.slice(0, -1)}_status_changed`,
+        date: new Date(),
+        remarks: `${partyType} status updated to ${this.get(
+          `${partyType}.$.status`
+        )}`,
+      });
+    }
+  });
+
   next();
 });
+
+// Single middleware for all query types
+caseSchema.pre(["find", "findOne"], function (next) {
+  this.populate(populateConfig);
+  next();
+});
+
+// Indexes for common queries
+caseSchema.index({ caseNumber: 1 });
+caseSchema.index({ status: 1, createdAt: -1 });
 
 export default model<CaseDocument>("Case", caseSchema);
